@@ -1,12 +1,13 @@
 from fastapi import FastAPI
 
-from app.routers import movie_list, watched_list, user, login
+from app.routers import movie_list, watched_list, user, login, to_be_seen
 
 app = FastAPI()
 app.include_router(user.router)
 app.include_router(login.router)
 app.include_router(movie_list.router)
 app.include_router(watched_list.router)
+app.include_router(to_be_seen.router)
 
 
 @app.get("/")

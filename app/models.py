@@ -18,4 +18,21 @@ class User(Base):
 class WatchedMovies(Base):
     __tablename__ = "watched movies"
     id: Mapped[int] = mapped_column(primary_key=True)
-    tmdb_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    tmdb_id: Mapped[int] = mapped_column(nullable=False, unique=True)
+    title: Mapped[str] = mapped_column(nullable=False)
+    release_date: Mapped[datetime] = mapped_column(DATE, nullable=False)
+    imdb_id: Mapped[str] = mapped_column(nullable=False, unique=True)
+    imdb_rating: Mapped[float] = mapped_column(nullable=False)
+    personal_rating: Mapped[float] = mapped_column(nullable=False)
+
+
+class UnWatched(Base):
+    __tablename__ = "movies to be seen"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    tmdb_id: Mapped[int] = mapped_column(nullable=False, unique=True)
+    title: Mapped[str] = mapped_column(nullable=False)
+    release_date: Mapped[datetime] = mapped_column(DATE, nullable=False)
+    imdb_id: Mapped[str] = mapped_column(nullable=False, unique=True)
+    imdb_rating: Mapped[float] = mapped_column(nullable=False)
