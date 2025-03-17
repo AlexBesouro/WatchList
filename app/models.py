@@ -27,8 +27,8 @@ class WatchedMovies(Base):
     personal_rating: Mapped[float] = mapped_column(nullable=False)
 
 
-class UnWatched(Base):
-    __tablename__ = "movies to be seen"
+class ToBeWatched(Base):
+    __tablename__ = "movies to be watched"
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
     tmdb_id: Mapped[int] = mapped_column(nullable=False, unique=True)

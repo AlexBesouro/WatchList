@@ -52,7 +52,7 @@ class WatchedMovie(BaseModel):
     class Config:
         from_attributes = True
 
-class UnWatched(BaseModel):
+class ToBeWatched(BaseModel):
     tmdb_id: int
     title: str
     release_date: date
