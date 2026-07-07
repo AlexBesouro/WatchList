@@ -1,6 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 
+
 from app.routers import movie_list, watched_list, user, login, to_be_watched
 
 my_app = FastAPI()
