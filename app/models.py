@@ -36,8 +36,6 @@ class WatchedMovies(Base):
 
 # CORRECTIONS AFTER INTERVIEW
 # composite unique index (UniqueConstraint).
-
-
 class ToBeWatched(Base):
     __tablename__ = "movies to be watched"
     id: Mapped[int] = mapped_column(primary_key=True)
