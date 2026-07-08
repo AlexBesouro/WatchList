@@ -1,9 +1,8 @@
 import asyncio
+from aiohttp import ClientError
 import json
 from typing import List
-import aiohttp
-from fastapi import APIRouter, Depends, Query
-from requests import RequestException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app import schemas, models
 from app.config import settings
@@ -17,10 +16,7 @@ router = APIRouter(prefix="/movies", tags=["All movies list"])
 
 
 @router.get("/", response_model=List[schemas.MovieResponse])
-async def get_movies(
-    params: schemas.MovieSearch,
-    db: Session = Depends(get_db),  # = Query()
-):
+async def get_movies(params: schemas.MovieSearch, db: Session = Depends(get_db)):
 
     headers = {
         "accept": "application/json",
@@ -44,7 +40,7 @@ async def get_movies(
 
             red.set(cache_key, json.dumps(result), ex=36000)
             print("Fetching new data from TMDB API")
-        except RequestException as e:
+        except ClientError as e:
             print(f"Error fetching TMDB data: {e}")
             return []  # Return an empty list instead of failing completely
         except ValueError:
@@ -65,7 +61,6 @@ async def get_movies(
         watched_status = bool(is_watched)
         personal_rating = is_watched.personal_rating if is_watched else 0
         watch_later = tmdb_id in to_be_watched_movies_set
-
         task = utils.get_movie_details(tmdb_id, headers)
         tasks.append(task)
         film_list.append(

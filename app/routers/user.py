@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import exists
 from sqlalchemy.orm import Session
@@ -27,8 +29,9 @@ def create_user(user: schemas.CreateUser, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(new_user)
         return new_user
-    except Exception as e:
+    except Exception:
         db.rollback()
+        logging.error("Error saving data to DB", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
