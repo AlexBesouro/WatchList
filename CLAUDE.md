@@ -20,7 +20,14 @@ Everything runs through the wrapper scripts, which use the project venv (`.venv`
 ```bash
 ./scripts/infra.sh start      # start PostgreSQL + Redis (docker compose, project "watchlist")
 ./scripts/infra.sh init       # apply Alembic migrations (upgrade head); idempotent
-./scripts/infra.sh psql       # open psql in the container   (also: cli → redis-cli, status, logs, clean)
+./scripts/infra.sh psql       # open psql in the container   (also: cli → redis-cli, clean, info)
+# infra.sh accepts a "<target> <action>" grammar (single entry point):
+#   target = all | postgres (pg) | redis | mock   action = start|stop|restart|status|logs
+#   e.g. ./scripts/infra.sh all restart · ./scripts/infra.sh redis logs · ./scripts/infra.sh mock start
+# Bare "start|stop|restart|status|logs" are legacy aliases for "all <action>".
+
+./scripts/seed.sh             # reset + seed demo data: users alice@ / bob@watchlist.dev (pwd Password_1) + their movies; idempotent
+# infra.sh start also starts a local TMDB/OMDB mock (scripts/mock_apis.py) → GET /movies/ works without API keys (run.sh dev auto-uses it)
 
 ./scripts/run.sh dev          # run the API in foreground with --reload → http://localhost:8000/docs
 ./scripts/run.sh start|stop|status|logs   # background instance
@@ -38,6 +45,7 @@ Everything runs through the wrapper scripts, which use the project venv (`.venv`
 - **`.env` is mandatory at import time.** `app/config.py` instantiates `Settings()` at module load, so *any* import of `app.*` (app, tests, Alembic) crashes without a populated `.env`. Copy `.env_example` → `.env` and fill it. Note `.env_example` shows `DATABASE_PORT=5432`, but docker-compose maps Postgres to host **5442** — the real `.env` must use 5442.
 - **ASGI target is `app.main:my_app`**, not the conventional `app`.
 - **Redis host is hard-coded** to `localhost:6379` in `app/routers/movie_list.py` (not read from config).
+- **Mock mode for `GET /movies/`** (no API keys needed): `scripts/mock_apis.py` is a standalone FastAPI server mimicking TMDB+OMDB. It's **infra**, started by `./scripts/infra.sh start` (part of `all`; port 9100) — or alone via `./scripts/infra.sh mock start`. `run.sh` never starts it; it only *points* the app at it: when mock mode is on, `run.sh` exports `TMDB_URL`/`OMDB_URL` toward `:9100` (pydantic-settings prioritizes OS env over `.env`, so `app/` is untouched). Mock mode toggle: `WATCHLIST_MOCK=1`/`0`; unset = auto-on while `.env` keys are still `CHANGE_ME` placeholders (so plain `run.sh dev` already uses the mock). `run.sh mock` just forces the mode.
 - **Table names contain spaces**: `users`, `"watched movies"`, `"movies to be watched"` (see `models.py`). Quote them in raw SQL.
 - **Alembic gets its URL from code, not the ini.** `alembic.ini`'s `sqlalchemy.url` is empty; `alembic/env.py` overrides it with `app.database.SQLALCHEMY_DATABASE_URL` (built from `.env`). So migrations always hit the same DB as the app.
 - **bcrypt is pinned to 4.0.1** in `requirements.txt` (passlib 1.7.4 breaks on bcrypt ≥ 4.1). Don't bump it.

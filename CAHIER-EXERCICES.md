@@ -24,20 +24,34 @@ Quelques repères pour être au clair :
 Tout est déjà installé et prêt à tourner. Depuis la racine du projet :
 
 ```bash
-# 1. Infra (PostgreSQL + Redis)
+# 1. Infra (PostgreSQL + Redis + mock TMDB/OMDB)
 ./scripts/infra.sh start
 ./scripts/infra.sh init        # migrations Alembic (idempotent, déjà appliquées)
 
-# 2. Lancer l'API
+# 2. Données de démo (2 users + leurs films) — idempotent, remet l'état initial
+./scripts/seed.sh
+
+# 3. Lancer l'API
 ./scripts/run.sh dev           # → http://localhost:8000/docs  (Swagger, pour tester à la main)
 
-# 3. Lancer les tests
+# 4. Lancer les tests
 ./scripts/test.sh              # toute la suite
 ./scripts/test.sh delete       # filtre par mot-clé (-k "delete")
 ```
 
 👉 **Le Swagger `/docs`** est ton meilleur ami pour essayer une route en live
 (créer un user, se logger, appeler un endpoint).
+
+**Comptes de démo** (créés par `seed.sh`, même mot de passe `Password_1`) :
+`alice@watchlist.dev` et `bob@watchlist.dev`. Alice a déjà des films « vus » et
+« à voir » — pratique pour tester la suppression de l'exercice 1.
+
+**`GET /movies/` sans clé API** : `./scripts/infra.sh start` démarre aussi un mock
+TMDB/OMDB local, et l'app détecte automatiquement l'absence de clés réelles — l'endpoint
+renvoie donc un catalogue de films réaliste, sans rien de plus à faire.
+
+Tu préfères Postman ? Une collection prête à l'emploi (le token se garde tout
+seul après le login) est dans `postman/` — voir `postman/README.md`.
 
 ---
 
