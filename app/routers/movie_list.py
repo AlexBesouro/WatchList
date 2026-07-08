@@ -17,7 +17,7 @@ router = APIRouter(prefix="/movies", tags=["All movies list"])
 
 
 @router.get("/", response_model= List[schemas.MovieResponse])
-async def get_movies(params: schemas.MovieSearch, db: Session = Depends(get_db)):
+async def get_movies(params: schemas.MovieSearch = Depends(), db: Session = Depends(get_db)):
 
     headers = {
         "accept": "application/json",
