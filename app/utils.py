@@ -3,8 +3,7 @@ from passlib.context import CryptContext
 from app.config import settings
 import re
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
- 
- 
+
 
 
 def is_strong_password(password):
