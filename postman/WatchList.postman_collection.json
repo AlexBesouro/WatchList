@@ -1,0 +1,494 @@
+{
+  "info": {
+    "name": "WatchList — API (entretien)",
+    "_postman_id": "watchlist-entretien-0001",
+    "description": "# WatchList — collection Postman\n\nAPI FastAPI de suivi de films (« vus » / « à voir »), enrichie TMDB/OMDB.\n\n## Démarrer\n1. Infra + base : `./scripts/infra.sh start && ./scripts/infra.sh init`\n2. Données de démo : `./scripts/seed.sh` (crée Alice & Bob + leurs films)\n3. API : `./scripts/run.sh dev` → http://localhost:8000/docs\n\n## Le token JWT est géré tout seul\nLance d'abord **🔐 Auth → Login (Alice)** (ou Bob). Le script de test de la\nrequête enregistre `access_token` dans la variable de collection `accessToken`.\nToutes les autres requêtes héritent de l'auth **Bearer `{{accessToken}}`** :\npas besoin de copier-coller le token.\n\nRejoue un Login pour changer d'utilisateur courant (Alice ↔ Bob).\n\n## Variables de collection\n| variable | rôle |\n|---|---|\n| `baseUrl` | `http://localhost:8000` |\n| `accessToken` | rempli automatiquement par Login |\n| `aliceEmail` / `alicePassword` | compte de démo Alice |\n| `bobEmail` / `bobPassword` | compte de démo Bob |\n| `tmdbId` | id TMDB pour la route DELETE (défaut `550` = Fight Club, vu par Alice) |\n\n## À noter\n- **`DELETE /watched/{tmdb_id}`** est la route de l'**exercice 1** : elle\n  n'existe pas encore. La requête est déjà prête ; elle renverra **204** une\n  fois la route implémentée (aujourd'hui : 404/405).\n- **`GET /movies/`** appelle TMDB + OMDB. Pas de clé API ? `./scripts/infra.sh start`\n  démarre un mock TMDB/OMDB local et l'app l'utilise automatiquement — l'endpoint renvoie\n  alors un catalogue réaliste (voir la requête pour les détails).\n- Les routes se terminent par `/` (sauf `DELETE /watched/{id}`) — respecté ici\n  pour éviter les redirections 307.\n",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "aliceEmail",
+      "value": "alice@watchlist.dev",
+      "type": "string"
+    },
+    {
+      "key": "alicePassword",
+      "value": "Password_1",
+      "type": "string"
+    },
+    {
+      "key": "bobEmail",
+      "value": "bob@watchlist.dev",
+      "type": "string"
+    },
+    {
+      "key": "bobPassword",
+      "value": "Password_1",
+      "type": "string"
+    },
+    {
+      "key": "tmdbId",
+      "value": "550",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Home",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            ""
+          ]
+        },
+        "description": "Page d'accueil (public)."
+      },
+      "response": []
+    },
+    {
+      "name": "🔐 Auth",
+      "description": "Connexion. Le token renvoyé est enregistré automatiquement dans `accessToken`.",
+      "item": [
+        {
+          "name": "Login (Alice)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/login/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login",
+                ""
+              ]
+            },
+            "description": "Connexion Alice. Enregistre `accessToken` (voir l'onglet Tests).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{aliceEmail}}\",\n  \"password\": \"{{alicePassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.access_token) {",
+                  "    pm.collectionVariables.set('accessToken', json.access_token);",
+                  "    console.log('\\u2713 accessToken enregistr\\u00e9 dans les variables de collection');",
+                  "}",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('R\\u00e9ponse contient access_token', () => {",
+                  "    pm.expect(pm.response.json()).to.have.property('access_token');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (Bob)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/login/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login",
+                ""
+              ]
+            },
+            "description": "Connexion Bob. Rejoue-la pour basculer l'utilisateur courant.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{bobEmail}}\",\n  \"password\": \"{{bobPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.access_token) {",
+                  "    pm.collectionVariables.set('accessToken', json.access_token);",
+                  "    console.log('\\u2713 accessToken enregistr\\u00e9 dans les variables de collection');",
+                  "}",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('R\\u00e9ponse contient access_token', () => {",
+                  "    pm.expect(pm.response.json()).to.have.property('access_token');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "👤 Users",
+      "description": "Création / mise à jour d'utilisateur. Politique mot de passe : 8+ car., maj/min/chiffre/spécial.",
+      "item": [
+        {
+          "name": "Create user (Alice)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                ""
+              ]
+            },
+            "description": "201 si créé, 409 si l'email existe déjà (le seed les crée déjà).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{aliceEmail}}\",\n  \"password\": \"{{alicePassword}}\",\n  \"first_name\": \"Alice\",\n  \"last_name\": \"Martin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create user (Bob)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                ""
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{bobEmail}}\",\n  \"password\": \"{{bobPassword}}\",\n  \"first_name\": \"Bob\",\n  \"last_name\": \"Durand\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update current user (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                ""
+              ]
+            },
+            "description": "Met à jour l'utilisateur courant (celui du token). Champs partiels acceptés.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Alice\",\n  \"last_name\": \"Martin-Dupont\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🎬 Watched",
+      "description": "Films « vus ». Auth Bearer héritée de la collection.",
+      "item": [
+        {
+          "name": "List watched",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/watched/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "watched",
+                ""
+              ]
+            },
+            "description": "Liste les films vus de l'utilisateur courant."
+          },
+          "response": []
+        },
+        {
+          "name": "Add watched",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/watched/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "watched",
+                ""
+              ]
+            },
+            "description": "Ajoute un film vu. 201 si ok, 409 si déjà présent. (tmdb_id 129 n'est dans aucun seed → marche sur base fraîche.)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tmdb_id\": 129,\n  \"title\": \"Spirited Away\",\n  \"release_date\": \"2001-07-20\",\n  \"imdb_id\": \"tt0245429\",\n  \"imdb_rating\": 8.6,\n  \"personal_rating\": 9.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete watched by tmdb_id  ⚡ exercice 1",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/watched/{{tmdbId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "watched",
+                "{{tmdbId}}"
+              ]
+            },
+            "description": "⚠️ Route de l'EXERCICE 1 — à coder. Cible : 204 si supprimé (filtré par user_id + tmdb_id), 404 si absent de la liste de CE user. Tant qu'elle n'existe pas : 404/405. `tmdbId`=550 (Fight Club) est vu par Alice → logge-toi en Alice d'abord."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Contrat cible de l'exercice 1 : 204 quand le film est supprim\\u00e9.",
+                  "// Rouge tant que la route DELETE /watched/{tmdb_id} n'est pas cod\\u00e9e (404/405).",
+                  "pm.test('204 No Content (route DELETE impl\\u00e9ment\\u00e9e)', () => {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📌 To watch",
+      "description": "Films « à voir ». Auth Bearer héritée de la collection.",
+      "item": [
+        {
+          "name": "List to-watch",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/to-watch/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "to-watch",
+                ""
+              ]
+            },
+            "description": "Liste la watchlist de l'utilisateur courant."
+          },
+          "response": []
+        },
+        {
+          "name": "Add to-watch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/to-watch/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "to-watch",
+                ""
+              ]
+            },
+            "description": "Ajoute un film à voir. 201 si ok, 409 si déjà présent.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tmdb_id\": 438631,\n  \"title\": \"Dune\",\n  \"release_date\": \"2021-09-15\",\n  \"imdb_id\": \"tt1160419\",\n  \"imdb_rating\": 8.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🍿 Movies (TMDB/OMDB)",
+      "description": "Recherche enrichie. ⚠️ Nécessite les clés API TMDB/OMDB dans `.env` + Redis.",
+      "item": [
+        {
+          "name": "Discover movies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/movies/?primary_release_year=1999&original_language=en&page=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movies",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "primary_release_year",
+                  "value": "1999"
+                },
+                {
+                  "key": "original_language",
+                  "value": "en"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Recherche TMDB en query params (?primary_release_year=&original_language=&page=). ✅ Fonctionne SANS clé API : `./scripts/infra.sh start` démarre un mock TMDB/OMDB local et l'app l'utilise automatiquement. Sans mock ni vraies clés → 500. Résultat mis en cache Redis 10h. Non requis pour les exercices.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

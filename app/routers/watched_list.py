@@ -37,13 +37,19 @@ def add_watched_movie(
 
 
 @router.get("/", status_code=200, response_model=List[schemas.WatchedMovie])
-def watched_movies(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user),
-):
-    movies = (
-        db.query(models.WatchedMovies)
-        .filter(models.WatchedMovies.user_id == current_user.user_id)
-        .all()
-    )
+def watched_movies(db: Session = Depends(get_db),
+                   current_user: models.User = Depends(auth.get_current_user)):
+    movies = db.query(models.WatchedMovies).filter(models.WatchedMovies.user_id == current_user.user_id).all()
     return movies
+
+@router.delete("/{id}", status_code=204)
+def delete_movie(id: int , db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)): 
+    movie = db.query(models.WatchedMovies).filter(models.WatchedMovies.tmdb_id == id, current_user.user_id == models.WatchedMovies.user_id).first()
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    try:
+        db.delete(movie)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Movie was not deleted.")

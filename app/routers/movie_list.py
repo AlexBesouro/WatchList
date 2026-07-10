@@ -15,6 +15,8 @@ red = redis.Redis(host="localhost", port=6379, decode_responses=True)
 router = APIRouter(prefix="/movies", tags=["All movies list"])
 
 
+@router.get("/", response_model= List[schemas.MovieResponse])
+async def get_movies(params: schemas.MovieSearch = Depends(), db: Session = Depends(get_db)):
 @router.get("/", response_model=List[schemas.MovieResponse])
 async def get_movies(params: schemas.MovieSearch, db: Session = Depends(get_db)):
 

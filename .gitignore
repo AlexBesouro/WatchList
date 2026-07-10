@@ -6,8 +6,9 @@ venv/
 __pycache__/
 *.pyc
 
-# Ignore logs
+# Ignore logs & PID files (artefacts runtime de run.sh / mock.sh)
 *.log
+*.pid
 
 # Ignore environment variables
 .env
