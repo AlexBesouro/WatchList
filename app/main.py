@@ -1,7 +1,12 @@
 import uvicorn
 from fastapi import FastAPI
+from app.routers import movie_list, watched_list, user, login, to_be_watched, smth
+from fastapi.middleware.cors import CORSMiddleware
+import logging
 
-from app.routers import movie_list, watched_list, user, login, to_be_watched
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 my_app = FastAPI()
 my_app.include_router(user.router)
@@ -9,6 +14,19 @@ my_app.include_router(login.router)
 my_app.include_router(movie_list.router)
 my_app.include_router(watched_list.router)
 my_app.include_router(to_be_watched.router)
+my_app.include_router(smth.router)
+
+origins = [
+    "http://localhost:5173",
+]
+
+my_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @my_app.get("/")

@@ -8,10 +8,18 @@ from app.database import get_db
 
 router = APIRouter(prefix="/watched", tags=["All watched movies list"])
 
+
 @router.post("/", status_code=201, response_model=schemas.WatchedMovie)
-def add_watched_movie(movie:schemas.WatchedMovie, db: Session = Depends(get_db),
-                      current_user: models.User = Depends(auth.get_current_user)):
-    user = db.query(models.User).filter(models.User.user_id == current_user.user_id).first()
+def add_watched_movie(
+    movie: schemas.WatchedMovie,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    user = (
+        db.query(models.User)
+        .filter(models.User.user_id == current_user.user_id)
+        .first()
+    )
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     add_movie_request = models.WatchedMovies(**movie.model_dump())
@@ -23,7 +31,9 @@ def add_watched_movie(movie:schemas.WatchedMovie, db: Session = Depends(get_db),
         return add_movie_request
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Movie already exists in the watched list.")
+        raise HTTPException(
+            status_code=409, detail="Movie already exists in the watched list."
+        )
 
 
 @router.get("/", status_code=200, response_model=List[schemas.WatchedMovie])
