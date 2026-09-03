@@ -41,7 +41,7 @@ TMDB/OMDB stand-in server (step 18). Each is rebuilt at the point it is first ne
 
 ## Day 1 (Wed 2 Sep) — The back-end runs, and is safe to point a browser at
 
-The back-end does not currently start: `app/routers/movie_list.py:18-21` carries a duplicated
+The back-end does not currently start: `backend/app/routers/movie_list.py:18-21` carries a duplicated
 decorator and signature from merge `93667f9`, so every import of `app.main` raises
 `IndentationError`. Nothing below can be verified until step 4 lands.
 
@@ -58,7 +58,7 @@ decorator and signature from merge `93667f9`, so every import of `app.main` rais
    template says 5432 and contradicts the container. The compose file declares postgres and
    redis and lives at the repository root, where `docker compose up -d` finds it with no `-f`
    flag. It is also the CP1 evidence: *les conteneurs implémentent les services requis*.
-4. [ ] **Fix the merge wreck** — `app/routers/movie_list.py:18-21`: drop the first decorator
+4. [ ] **Fix the merge wreck** — `backend/app/routers/movie_list.py:18-21`: drop the first decorator
    and signature pair, keep `params: schemas.MovieSearch = Depends()`, the query-string form
    introduced by commit `9805e71`.
 5. [ ] **Close the cross-user leak** — `GET /movies/` has no auth dependency
@@ -73,14 +73,14 @@ decorator and signature from merge `93667f9`, so every import of `app.main` rais
 7. [ ] **Make Redis a cache, not a dependency** — `movie_list.py:29,43` are unguarded, so Redis
    down means HTTP 500. Wrap in `try/except redis.RedisError` and fall through to TMDB. Four
    lines, and it is the CP6 criterion on handling exception cases.
-8. [ ] **Delete the leftovers** — `app/routers/smth.py`, a public stub returning `"Rabotaet"`,
+8. [ ] **Delete the leftovers** — `backend/app/routers/smth.py`, a public stub returning `"Rabotaet"`,
    mounted at `main.py:3,17`.
-9. [ ] **Fill the test gaps** — `tests/test_login.py` is 0 bytes. Add login success, wrong
+9. [ ] **Fill the test gaps** — `backend/tests/test_login.py` is 0 bytes. Add login success, wrong
    password, unknown email; a `/to-watch` create-read-delete cycle; a 401 on a missing token;
    and the regression test for step 5. Reset `my_app.dependency_overrides` in the `client`
    fixture — `conftest.py:36` leaks it across the whole session.
 
-**Verify:** `docker compose up -d` then `.venv/Scripts/alembic upgrade head` ·
+**Verify:** `docker compose up -d`, then from `backend/`: `.venv/Scripts/alembic upgrade head` ·
 `.venv/Scripts/pytest -q` green · `.venv/Scripts/uvicorn app.main:my_app --reload` →
 `http://localhost:8000/docs` lists the routes without `/smth` and with the new DELETE.
 
@@ -98,9 +98,9 @@ first.
     nice-to-have. Search to Favorites and back, with the auth modal drawn as an overlay that
     any authenticated-only action opens, and the return arrow to the action the user was
     attempting. Mermaid in `docs/mockups.md`.
-12. [ ] **Squash the migrations** — delete all 8 files in `alembic/versions/` (two have broken
+12. [ ] **Squash the migrations** — delete all 8 files in `backend/alembic/versions/` (two have broken
     downgrades: `ada860ce836a:22-27` drops unnamed constraints, `dd1da675dc2e:33` drops the
-    wrong constraint name), rename the two space-containing tables in `app/models.py` to
+    wrong constraint name), rename the two space-containing tables in `backend/app/models.py` to
     `watched_movies` and `movies_to_watch`, add a naming convention to `Base.metadata`, then
     generate one `initial schema` revision. This wipes the local data, which is why the seed
     script comes back at step 15.
@@ -144,7 +144,7 @@ the seed script, rebuild the database from zero · `watchlist_app` can read and 
     logged-out session opens the modal instead. The token goes in `localStorage`; write the
     trade-off into `docs/security.md` rather than leaving it unexamined.
 22. [ ] **`src/components/AuthModal.jsx`** — one dialog, two tabs. Client-side validation
-    mirroring `app/utils.py:9-21` (at least 8 characters, upper, lower, digit, special) shown
+    mirroring `backend/app/utils.py:9-21` (at least 8 characters, upper, lower, digit, special) shown
     live, with the server staying the authority; errors in an `aria-live="polite"` region,
     labels tied to inputs with `htmlFor`. Build it on the native `<dialog>`: `showModal()`
     gives the focus trap, the backdrop and `Escape` for free, and focus must return to the
@@ -248,7 +248,7 @@ belong in the dossier's "what is left to do", which scores better than silence.
   `NOT NULL` violation (`watched_list.py:32`, `to_be_watched.py:33`).
 - `schemas.ToBeWatched` lacks `from_attributes` while serving as an ORM `response_model`
   (`to_be_watched.py:40`).
-- `alembic.ini:65` holds a dead literal f-string with a typo — `setting.` for `settings.`.
+- `backend/alembic.ini:65` holds a dead literal f-string with a typo — `setting.` for `settings.`.
 - **No `.gitattributes`** — line endings are left to each machine's `core.autocrlf`. Harmless
   for Markdown, fatal for a shell script: a `.sh` checked out with CRLF fails as
   `$'\r': command not found`, an error that points nowhere near its cause. Matters from step 33.
