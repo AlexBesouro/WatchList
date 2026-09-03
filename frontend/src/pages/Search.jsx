@@ -26,23 +26,50 @@ export default function Search() {
   const [error, setError] = useState('')
   const [page, setPage] = useState(1)
 
+  // Shared by the form and the mount effect, so the two paths cannot drift.
+  function applyResult(term, found) {
+    setMovies(found)
+    setSubmitted(term)
+    setStatus(found.length > 0 ? 'ready' : 'empty')
+  }
+
+  function applyError(failure) {
+    setError(failure.message)
+    setStatus('error')
+  }
+
   async function load(term) {
     setStatus('loading')
     setPage(1)
     try {
-      const found = await fakeSearch(term)
-      setMovies(found)
-      setSubmitted(term)
-      setStatus(found.length > 0 ? 'ready' : 'empty')
+      applyResult(term, await fakeSearch(term))
     } catch (failure) {
-      setError(failure.message)
-      setStatus('error')
+      applyError(failure)
     }
   }
 
-  // Empty dependency array: the popular list is fetched once, after mounting.
+  // Runs once after mounting. The effect callback itself cannot be async — React
+  // reads its return value as the cleanup function, and async always returns a
+  // promise — so the async work is declared inside and started from there.
   useEffect(() => {
-    load('')
+    let ignore = false
+
+    async function loadPopular() {
+      try {
+        const found = await fakeSearch('')
+        if (!ignore) applyResult('', found)
+      } catch (failure) {
+        if (!ignore) applyError(failure)
+      }
+    }
+
+    loadPopular()
+
+    // Drops the answer to a mount that no longer exists: StrictMode remounts
+    // once in development, and a slow response can outlive the page.
+    return () => {
+      ignore = true
+    }
   }, [])
 
   function handleSubmit(event) {
