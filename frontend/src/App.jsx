@@ -1,19 +1,12 @@
-import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import Header from './components/Header.jsx'
 import Favorites from './pages/Favorites.jsx'
 import Search from './pages/Search.jsx'
 
-// The nav is temporary: step 5 replaces it with <Header />, which adds the auth controls.
 export default function App() {
   return (
     <BrowserRouter>
-      <header>
-        <nav aria-label="Main">
-          <NavLink to="/" end>
-            Search
-          </NavLink>
-          <NavLink to="/favorites">Favorites</NavLink>
-        </nav>
-      </header>
+      <Header />
 
       <main>
         <Routes>

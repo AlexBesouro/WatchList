@@ -5,6 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WatchList</title>
+    <script>
+      // Runs before <body> is parsed, so the theme is on <html> before the first paint.
+      ;(() => {
+        let saved = null
+        try {
+          saved = localStorage.getItem('theme')
+        } catch {
+          // Blocked site data: fall back to the system preference.
+        }
+        const light = window.matchMedia('(prefers-color-scheme: light)').matches
+        document.documentElement.dataset.theme = saved ?? (light ? 'light' : 'dark')
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
