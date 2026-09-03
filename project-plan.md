@@ -241,6 +241,9 @@ dossier's "what is left to do", which scores better than silence.
 - No `.gitattributes`. Any `.sh` file committed from Windows can arrive with CRLF and die as
   `$'\r': command not found`, an error that points everywhere except its cause. Matters from
   step 26.
+- `frontend/public/placeholder.png` weighs 284 kB for an image that carries no
+  information. It is cached after the first request, but eco-design is graded and the
+  number gets asked about; re-exporting it under 20 kB takes a minute.
 - No CI, no pre-commit, no LICENSE.
 - The `watched_movies` table has no UI. Fine for now — it is API and test evidence — but the
   README must say so, or a jury reads it as dead code.
