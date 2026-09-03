@@ -1,0 +1,3 @@
+[virtualenvs]
+# The venv must land in .venv/ — all five scripts/*.sh look there and nowhere else.
+in-project = true
