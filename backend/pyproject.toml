@@ -1,0 +1,29 @@
+[project]
+name = "watchlist"
+version = "0.1.0"
+description = "REST API tracking watched movies and a to-watch list, enriched with TMDB/OMDB data"
+authors = [
+    {name = "Alex Zhukov", email = "ozhukov@galigeo.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13,<4.0"
+dependencies = ["fastapi (>=0.141.1,<0.142.0)", "uvicorn[standard] (>=0.52.4,<0.53.0)", "sqlalchemy (>=2.0.52,<3.0.0)", "psycopg2-binary (>=2.9.12,<3.0.0)", "alembic (>=1.19.1,<2.0.0)", "pydantic[email] (>=2.13.5,<3.0.0)", "pydantic-settings (>=2.15.0,<3.0.0)", "passlib[bcrypt] (>=1.7.4,<2.0.0)", "bcrypt (==4.0.1)", "pyjwt (>=2.13.0,<3.0.0)", "redis (>=8.1.0,<9.0.0)", "aiohttp (>=3.14.3,<4.0.0)"]
+
+[tool.poetry]
+# Application, not a library: nothing to build or publish.
+# Poetry only manages the virtualenv and the dependencies.
+package-mode = false
+
+[tool.pytest.ini_options]
+# package-mode = false means `app` is never installed into the venv, so pytest
+# needs the repo root on sys.path for `from app.main import my_app` to resolve.
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.1.1,<10.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "pytest-cov (>=7.1.0,<8.0.0)",
+    "ruff (>=0.16.5,<0.17.0)"
+]

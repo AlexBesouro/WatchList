@@ -6,7 +6,7 @@ venv/
 __pycache__/
 *.pyc
 
-# Ignore logs & PID files (artefacts runtime de run.sh / mock.sh)
+# Ignore logs & PID files (runtime artefacts of run.sh / mock.sh)
 *.log
 *.pid
 
@@ -15,3 +15,7 @@ __pycache__/
 
 # Ignore IDE configs
 .idea
+.vscode/
+
+# Personal working notes, written in Russian and kept out of the repository
+notes/
