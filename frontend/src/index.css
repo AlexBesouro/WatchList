@@ -123,12 +123,13 @@ header {
   text-decoration: none;
 }
 
-nav {
+/* Scoped to the header: the pagination is a <nav> too and must not inherit this. */
+header nav {
   display: flex;
   gap: var(--space-3);
 }
 
-nav a[aria-current='page'] {
+header nav a[aria-current='page'] {
   color: var(--text);
   border-bottom: 2px solid var(--accent);
 }
@@ -173,6 +174,41 @@ input {
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
+}
+
+/* --- Search bar, states, pagination --------------------------------------- */
+
+.search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+/* grow / shrink / basis: fills the row when there is space, wraps when not. */
+.search-bar input {
+  flex: 1 1 16rem;
+}
+
+.error {
+  color: var(--error);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button:disabled:hover {
+  background: var(--accent);
 }
 
 /* --- Film cards ----------------------------------------------------------- */
