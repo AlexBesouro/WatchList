@@ -175,6 +175,66 @@ input {
   color: var(--text);
 }
 
+/* --- Film cards ----------------------------------------------------------- */
+
+/* auto-fill with minmax reflows the grid at any width, which is why the whole
+   stylesheet needs only one breakpoint. */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+/* A fixed box keeps every card the same shape; `contain` shows any image whole.
+   3:4 is shorter than a 2:3 poster, so posters gain thin bars at the sides. */
+.card-poster {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  object-fit: contain;
+  border-radius: var(--radius);
+}
+
+.card-title {
+  margin: 0;
+  font-size: var(--step-1);
+}
+
+.card-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* Pushes the button down so buttons line up across cards of different heights. */
+.card button {
+  margin-top: auto;
+}
+
+.card button.is-active {
+  border-color: var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+.card button.is-active:hover {
+  border-color: var(--accent);
+  background: transparent;
+}
+
 /* --- Wide screens --------------------------------------------------------- */
 
 @media (min-width: 768px) {
