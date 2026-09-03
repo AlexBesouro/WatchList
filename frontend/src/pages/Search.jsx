@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { MOVIES } from '../api/fixtures.js'
-import MovieCard from '../components/MovieCard.jsx'
+import MovieGrid from '../components/MovieGrid.jsx'
+import { useMovieList } from '../hooks/useMovieList.js'
 
 // Two per page, so four fixture films are enough to exercise the pagination.
 const PAGE_SIZE = 2
@@ -17,64 +18,25 @@ function fakeSearch(term) {
   return new Promise((resolve) => setTimeout(() => resolve(found), 400))
 }
 
+// Declared here, not inline in the call: useMovieList takes it as an effect
+// dependency, and an arrow written inside the component would be a new value
+// on every render.
+const loadPopular = () => fakeSearch('')
+
 export default function Search() {
+  const { status, movies, error, setMovies, reload } = useMovieList(loadPopular)
+
   const [query, setQuery] = useState('')
   // The term whose results are on screen; "" means the popular list.
   const [submitted, setSubmitted] = useState('')
-  const [status, setStatus] = useState('loading')
-  const [movies, setMovies] = useState([])
-  const [error, setError] = useState('')
   const [page, setPage] = useState(1)
-
-  // Shared by the form and the mount effect, so the two paths cannot drift.
-  function applyResult(term, found) {
-    setMovies(found)
-    setSubmitted(term)
-    setStatus(found.length > 0 ? 'ready' : 'empty')
-  }
-
-  function applyError(failure) {
-    setError(failure.message)
-    setStatus('error')
-  }
-
-  async function load(term) {
-    setStatus('loading')
-    setPage(1)
-    try {
-      applyResult(term, await fakeSearch(term))
-    } catch (failure) {
-      applyError(failure)
-    }
-  }
-
-  // Runs once after mounting. The effect callback itself cannot be async — React
-  // reads its return value as the cleanup function, and async always returns a
-  // promise — so the async work is declared inside and started from there.
-  useEffect(() => {
-    let ignore = false
-
-    async function loadPopular() {
-      try {
-        const found = await fakeSearch('')
-        if (!ignore) applyResult('', found)
-      } catch (failure) {
-        if (!ignore) applyError(failure)
-      }
-    }
-
-    loadPopular()
-
-    // Drops the answer to a mount that no longer exists: StrictMode remounts
-    // once in development, and a slow response can outlive the page.
-    return () => {
-      ignore = true
-    }
-  }, [])
 
   function handleSubmit(event) {
     event.preventDefault()
-    load(query.trim())
+    const term = query.trim()
+    setSubmitted(term)
+    setPage(1)
+    reload(() => fakeSearch(term))
   }
 
   // Stands in for POST/DELETE on /to-watch/; step 19 replaces it with real calls.
@@ -86,7 +48,9 @@ export default function Search() {
     )
   }
 
-  // Derived from movies and page, so they are computed here rather than stored.
+  // All derived from movies and page, so they are computed rather than stored.
+  const found = status === 'ready' && movies.length > 0
+  const isEmpty = status === 'ready' && movies.length === 0
   const pageCount = Math.max(1, Math.ceil(movies.length / PAGE_SIZE))
   const shown = movies.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
@@ -113,10 +77,10 @@ export default function Search() {
           already exists, not the arrival of the node itself. */}
       <div aria-live="polite">
         {status === 'loading' && <p>Loading…</p>}
-        {status === 'empty' && <p>Nothing found for “{submitted}”.</p>}
         {status === 'error' && <p className="error">{error}</p>}
-        {status === 'ready' && submitted === '' && <p>Popular films.</p>}
-        {status === 'ready' && submitted !== '' && (
+        {isEmpty && <p>Nothing found for “{submitted}”.</p>}
+        {found && submitted === '' && <p>Popular films.</p>}
+        {found && submitted !== '' && (
           <p>
             {movies.length} film{movies.length > 1 ? 's' : ''} found for “
             {submitted}”.
@@ -124,17 +88,9 @@ export default function Search() {
         )}
       </div>
 
-      {status === 'ready' && (
+      {found && (
         <>
-          <ul className="card-grid">
-            {shown.map((movie) => (
-              <MovieCard
-                key={movie.tmdb_id}
-                movie={movie}
-                onToggle={toggleFavorite}
-              />
-            ))}
-          </ul>
+          <MovieGrid movies={shown} onToggle={toggleFavorite} />
 
           <nav className="pagination" aria-label="Result pages">
             <button
