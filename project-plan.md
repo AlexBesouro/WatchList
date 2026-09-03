@@ -118,8 +118,10 @@ whole flow is usable with the keyboard alone · at 375 px nothing overflows hori
     decorator and signature, so `import app.main` raises `IndentationError` and the whole test
     suite is dead. Keep the `Depends()` form; the bare `params: schemas.MovieSearch` form would
     demand a request body on a GET.
-12. [ ] **The three schema changes the scope requires** — `MovieSearch` becomes `query: str` and
-    `page: int`, and the upstream call moves from TMDB `discover/movie` to `search/movie`;
+12. [ ] **The three schema changes the scope requires** — `MovieSearch` becomes an **optional**
+    `query: str | None` plus `page: int`. An empty query keeps the existing `discover/movie`
+    call, which is what fills the home page with popular films; a query of three characters or
+    more goes to `search/movie` instead;
     `poster_path` is added to `MovieResponse` and read from the raw result at
     `movie_list.py:70`; `ToBeWatched.imdb_id` and `imdb_rating` become `Optional` with nullable
     columns, because a film absent from OMDB currently returns 422 on add.
