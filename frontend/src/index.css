@@ -202,9 +202,10 @@ input {
   margin-bottom: var(--space-3);
 }
 
-/* grow / shrink / basis: fills the row when there is space, wraps when not. */
+/* grow / shrink / basis: fills the row when there is space, wraps when not.
+   12rem keeps the field and its button on one line down to a 360px screen. */
 .search-bar input {
-  flex: 1 1 16rem;
+  flex: 1 1 12rem;
 }
 
 .error {
@@ -229,12 +230,12 @@ button:disabled:hover {
 
 /* --- Film cards ----------------------------------------------------------- */
 
-/* auto-fill with minmax reflows the grid at any width, which is why the whole
-   stylesheet needs only one breakpoint. */
+/* Mobile-first: a 150px floor fits two cards from 360px up, and auto-fill adds
+   columns by itself as the viewport grows — hence a single breakpoint below. */
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -262,7 +263,7 @@ button:disabled:hover {
 
 .card-title {
   margin: 0;
-  font-size: var(--step-1);
+  font-size: var(--step-0);
 }
 
 .card-meta {
@@ -384,5 +385,15 @@ dialog::backdrop {
 
   main {
     padding: var(--space-4) var(--space-3);
+  }
+
+  /* Room for a wider card, so the poster carries the layout instead of the text. */
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--space-3);
+  }
+
+  .card-title {
+    font-size: var(--step-1);
   }
 }
