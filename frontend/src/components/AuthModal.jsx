@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { checkPassword, isStrongPassword } from '../lib/password.js'
 
 const EMPTY = { email: '', password: '', first_name: '', last_name: '' }
 
@@ -30,6 +31,11 @@ export default function AuthModal({ open, onClose }) {
 
   function handleSubmit(event) {
     event.preventDefault()
+    // Native validation covers required and length; the rest of the policy is here.
+    if (signup && !isStrongPassword(form.password)) {
+      setNotice('The password does not meet every rule yet.')
+      return
+    }
     setNotice('Not connected to the API yet — that is step 19.')
   }
 
@@ -92,9 +98,23 @@ export default function AuthModal({ open, onClose }) {
               type="password"
               autoComplete={signup ? 'new-password' : 'current-password'}
               required
+              // Read out when focus lands on the field. Deliberately not aria-live,
+              // which would announce the whole list on every keystroke.
+              aria-describedby={signup ? 'password-rules' : undefined}
               value={form.password}
               onChange={update}
             />
+
+            {signup && (
+              <ul className="password-rules" id="password-rules">
+                {checkPassword(form.password).map((rule) => (
+                  <li key={rule.id} className={rule.met ? 'is-met' : undefined}>
+                    <span aria-hidden="true">{rule.met ? '✓' : '·'}</span> {rule.label}
+                    <span className="sr-only">{rule.met ? ' — met' : ' — not met'}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {signup && (
