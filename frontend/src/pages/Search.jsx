@@ -3,8 +3,10 @@ import { MOVIES } from '../api/fixtures.js'
 import MovieGrid from '../components/MovieGrid.jsx'
 import { useMovieList } from '../hooks/useMovieList.js'
 
-// Two per page, so four fixture films are enough to exercise the pagination.
-const PAGE_SIZE = 2
+// Eight fills a phone screen at two columns and splits the 20 fixture films into
+// three pages, so the pagination stays reachable by hand. Step 19 drops this: the
+// API paginates server-side and a page arrives already sliced.
+const PAGE_SIZE = 8
 
 // Stands in for GET /movies/ until step 19. An empty term means "popular", which
 // every title matches. "boom" is the only way to reach the error state by hand.
