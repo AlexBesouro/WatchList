@@ -1,6 +1,7 @@
 import asyncio
 from aiohttp import ClientError
 import json
+from urllib.parse import quote_plus
 from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -15,30 +16,30 @@ red = redis.Redis(host="localhost", port=6379, decode_responses=True)
 router = APIRouter(prefix="/movies", tags=["All movies list"])
 
 
-@router.get("/", response_model= List[schemas.MovieResponse])
-async def get_movies(params: schemas.MovieSearch = Depends(), db: Session = Depends(get_db)):
 @router.get("/", response_model=List[schemas.MovieResponse])
-async def get_movies(params: schemas.MovieSearch, db: Session = Depends(get_db)):
-
+async def get_movies(params: schemas.MovieSearch = Depends(), db: Session = Depends(get_db)):
     headers = {
         "accept": "application/json",
         "Authorization": f"Bearer {settings.AUTHORIZATION}",
     }
 
-    cache_key = f"TMDB_result:{params.primary_release_year}:{params.original_language}:{params.page}"
+    # The query belongs in the key: otherwise a search reads back the popular list.
+    cache_key = f"TMDB_result:{params.query}:{params.page}"
     cached_result = red.get(cache_key)
     if cached_result:
         result = json.loads(cached_result)
         print("Returning cached data")
     else:
-        try:
-            result = await utils.fetch_data(
-                f"{settings.TMDB_URL}discover/movie?"
-                f"primary_release_year={params.primary_release_year}&"
-                f"with_original_language={params.original_language}&"
-                f"page={params.page}",
-                headers=headers,
+        # No query means the home page, and discover answers "what is popular now".
+        if params.query:
+            url = (
+                f"{settings.TMDB_URL}search/movie?"
+                f"query={quote_plus(params.query)}&page={params.page}"
             )
+        else:
+            url = f"{settings.TMDB_URL}discover/movie?page={params.page}"
+        try:
+            result = await utils.fetch_data(url, headers=headers)
 
             red.set(cache_key, json.dumps(result), ex=36000)
             print("Fetching new data from TMDB API")
@@ -52,17 +53,11 @@ async def get_movies(params: schemas.MovieSearch, db: Session = Depends(get_db))
     res = result["results"]
     film_list = []
     tasks = []
-    watched_movies = db.query(models.WatchedMovies).all()
-    watched_movies_dict = {movie.tmdb_id: movie for movie in watched_movies}
-    to_be_watched_movies = db.query(models.ToBeWatched).all()
-    to_be_watched_movies_set = {movie.tmdb_id for movie in to_be_watched_movies}
+    # One column, not whole rows: only the ids are needed to set the flag.
+    favorite_ids = {row.tmdb_id for row in db.query(models.Favorite.tmdb_id).all()}
 
     for movie in res:
         tmdb_id = movie["id"]
-        is_watched = watched_movies_dict.get(tmdb_id)
-        watched_status = bool(is_watched)
-        personal_rating = is_watched.personal_rating if is_watched else 0
-        watch_later = tmdb_id in to_be_watched_movies_set
         task = utils.get_movie_details(tmdb_id, headers)
         tasks.append(task)
         film_list.append(
@@ -70,9 +65,9 @@ async def get_movies(params: schemas.MovieSearch, db: Session = Depends(get_db))
                 "tmdb_id": tmdb_id,
                 "title": movie["original_title"],
                 "release_date": movie["release_date"],
-                "already_seen": watched_status,
-                "personal_rating": personal_rating,
-                "watch_later": watch_later,
+                # TMDB sends the key with a null value when a title has no poster.
+                "poster_path": movie.get("poster_path"),
+                "is_favorite": tmdb_id in favorite_ids,
             }
         )
 

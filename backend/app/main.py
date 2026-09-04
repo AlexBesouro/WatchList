@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
-from app.routers import movie_list, watched_list, user, login, to_be_watched, smth
+from app.routers import movie_list, watched_list, user, login, favorites, smth
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
@@ -13,7 +13,7 @@ my_app.include_router(user.router)
 my_app.include_router(login.router)
 my_app.include_router(movie_list.router)
 my_app.include_router(watched_list.router)
-my_app.include_router(to_be_watched.router)
+my_app.include_router(favorites.router)
 my_app.include_router(smth.router)
 
 origins = [
