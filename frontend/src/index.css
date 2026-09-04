@@ -271,6 +271,77 @@ button:disabled:hover {
   background: transparent;
 }
 
+/* --- Auth dialog ---------------------------------------------------------- */
+
+/* The browser paints <dialog> in system colours, so the theme is applied here.
+   padding stays 0: it would belong to the dialog, and a click on it would then
+   read as a backdrop click. The inner .auth-body carries it instead. */
+dialog {
+  width: min(28rem, calc(100vw - 2rem));
+  padding: 0;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.auth-body {
+  padding: var(--space-3);
+}
+
+/* Custom properties do not reach ::backdrop everywhere, so the value is literal. */
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+
+.auth-tabs {
+  display: flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+/* Styled from the accessibility attribute, so the state a screen reader reads
+   and the state CSS paints are the same value and cannot drift apart. */
+.auth-tabs button[aria-pressed='false'],
+.auth-actions button[type='button'] {
+  border-color: var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+.auth-tabs button[aria-pressed='false']:hover,
+.auth-actions button[type='button']:hover {
+  border-color: var(--accent);
+  background: transparent;
+}
+
+.auth-form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.auth-form label {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.auth-form input {
+  width: 100%;
+}
+
+.auth-notice {
+  margin: 0;
+  color: var(--muted);
+}
+
+.auth-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
 /* --- Wide screens --------------------------------------------------------- */
 
 @media (min-width: 768px) {

@@ -1,7 +1,7 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useTheme } from '../hooks/useTheme.js'
 
-export default function Header() {
+export default function Header({ onSignIn }) {
   const { theme, toggle } = useTheme()
 
   return (
@@ -20,6 +20,9 @@ export default function Header() {
       <div className="header-actions">
         <button type="button" onClick={toggle}>
           {theme === 'dark' ? 'Light theme' : 'Dark theme'}
+        </button>
+        <button type="button" onClick={onSignIn}>
+          Sign in
         </button>
       </div>
     </header>
