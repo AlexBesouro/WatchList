@@ -123,11 +123,13 @@ whole flow is usable with the keyboard alone · at 375 px nothing overflows hori
 
 ## Day 3 (Fri 4 Sep) — the back-end, and the wiring
 
-10. [ ] **`.env` and a root `compose.yml`** — `Settings()` runs at import time, so nothing in
-    `backend/` imports without `.env`. Copy `backend/.env_example` and set
-    **`DATABASE_PORT=5442`**: the template says 5432 and contradicts the container. The compose
-    file declares postgres and redis and sits at the repository root, where `docker compose up
-    -d` finds it with no `-f`.
+10. [x] **The virtualenv and `.env`, with nothing running** — `poetry install` from `backend/`,
+    then copy `backend/.env_example` to `backend/.env`. `Settings()` runs at import time, so
+    nothing under `app.` imports without it: not the app, not the tests, not Alembic. Set
+    **`DATABASE_PORT=5555`** already, to match the container that arrives at step 15. The
+    template keeps the 5432 default on purpose: it documents the shape of the file, not one
+    machine's setup. No database runs at this point and none is needed — steps 11 to 14 are read
+    from the shape of `/docs`, which touches neither Postgres nor Redis.
 11. [ ] **Fix the merge wreck** — `backend/app/routers/movie_list.py:18-21` carries a duplicated
     decorator and signature, so `import app.main` raises `IndentationError` and the whole test
     suite is dead. Keep the `Depends()` form; the bare `params: schemas.MovieSearch` form would
@@ -143,17 +145,22 @@ whole flow is usable with the keyboard alone · at 375 px nothing overflows hori
     reads both tables with `.all()` (`movie_list.py:19,55,57`), so every user's rows are
     cross-referenced. This is OWASP A01, found in our own code; write the before and after down
     as it is fixed, because it is the whole of the security-watch chapter at step 24. Add one
-    regression test: user B never sees user A's rows.
+    regression test: user B never sees user A's rows. The test is written here but only runs at
+    step 15 — it is the one thing in this block that needs a live database, and a red test before
+    then means no database, not a broken fix.
 14. [ ] **Three small repairs** — wrap the two Redis calls (`movie_list.py:29,43`) in
     `try/except redis.RedisError` so a stopped Redis degrades to a cache miss instead of a 500,
     which is CP6's exception-handling criterion in four lines; add
     `DELETE /to-watch/{tmdb_id}`, mirroring `watched_list.py:45`; delete `app/routers/smth.py`
     and its mount in `main.py:3,17`.
-15. [ ] **One migration** — delete all 8 files in `backend/alembic/versions/` (two have broken
-    downgrades) and generate a single `initial schema`. Do it here, not later: the table renames
-    (`"watched movies"` and `"movies to be watched"` carry spaces) and the nullable columns from
-    step 12 need a migration anyway, and one is cheaper than two. Add a naming convention to
-    `Base.metadata` so constraints stop getting random names.
+15. [ ] **Postgres and Redis, then one migration** — a `compose.yml` at the repository root,
+    where `docker compose up -d` finds it with no `-f`, declaring the two services and a named
+    volume so the data survives a restart. Postgres publishes host port **5555**. Then delete all
+    8 files in `backend/alembic/versions/` (two have broken downgrades) and generate a single
+    `initial schema`. The containers arrive here rather than earlier because the migration is the
+    first thing that cannot run without them. The table renames belong here too — `"watched
+    movies"` and `"movies to be watched"` carry spaces — along with the nullable columns from
+    step 12, and a naming convention on `Base.metadata` so constraints stop getting random names.
 16. [ ] **Seed script** — two users with populated lists. This is the CP5 *jeu d'essai*, and the
     two accounts are what proves the step 13 isolation fix by demonstration rather than
     assertion.
