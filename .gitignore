@@ -19,3 +19,6 @@ __pycache__/
 
 # Personal working notes, written in Russian and kept out of the repository
 notes/
+
+# The Claude Code guide is a personal working file, kept out of the repository
+CLAUDE.md
