@@ -36,10 +36,10 @@ export default function MovieCard({ movie, onToggle }) {
 
       <button
         type="button"
-        className={movie.watch_later ? 'is-active' : undefined}
+        className={movie.is_favorite ? 'is-active' : undefined}
         onClick={() => onToggle(movie)}
       >
-        {movie.watch_later ? 'Remove from favourites' : 'Add to favourites'}
+        {movie.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
       </button>
     </li>
   )

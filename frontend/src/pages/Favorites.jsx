@@ -6,7 +6,7 @@ import { useMovieList } from '../hooks/useMovieList.js'
 // Stands in for GET /to-watch/ until step 19. Declared outside the component:
 // useMovieList takes it as an effect dependency, so the reference must be stable.
 function fakeFavorites() {
-  const found = MOVIES.filter((movie) => movie.watch_later)
+  const found = MOVIES.filter((movie) => movie.is_favorite)
   return new Promise((resolve) => setTimeout(() => resolve(found), 400))
 }
 

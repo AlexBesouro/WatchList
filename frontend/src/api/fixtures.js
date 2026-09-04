@@ -12,7 +12,7 @@ export const MOVIES = [
     imdb_rating: 8.8,
     already_seen: false,
     personal_rating: 0,
-    watch_later: false,
+    is_favorite: false,
   },
   {
     // No poster: TMDB leaves poster_path null for plenty of titles.
@@ -24,7 +24,7 @@ export const MOVIES = [
     imdb_rating: 8.9,
     already_seen: false,
     personal_rating: 0,
-    watch_later: true,
+    is_favorite: true,
   },
   {
     // Absent from OMDB: both IMDb fields come back null.
@@ -36,7 +36,7 @@ export const MOVIES = [
     imdb_rating: null,
     already_seen: false,
     personal_rating: 0,
-    watch_later: false,
+    is_favorite: false,
   },
   {
     tmdb_id: 155,
@@ -47,7 +47,7 @@ export const MOVIES = [
     imdb_rating: 9,
     already_seen: false,
     personal_rating: 0,
-    watch_later: false,
+    is_favorite: false,
   },
   {
     tmdb_id: 27205,
@@ -58,7 +58,7 @@ export const MOVIES = [
     imdb_rating: 8.8,
     already_seen: false,
     personal_rating: 0,
-    watch_later: false,
+    is_favorite: false,
   },
   {
     tmdb_id: 157336,
@@ -69,7 +69,7 @@ export const MOVIES = [
     imdb_rating: 8.7,
     already_seen: false,
     personal_rating: 0,
-    watch_later: true,
+    is_favorite: true,
   },
   {
     // Watched and rated: fields the SPA ignores but the API always sends.
@@ -81,7 +81,7 @@ export const MOVIES = [
     imdb_rating: 8.7,
     already_seen: true,
     personal_rating: 9,
-    watch_later: false,
+    is_favorite: false,
   },
   {
     tmdb_id: 278,
@@ -92,7 +92,7 @@ export const MOVIES = [
     imdb_rating: 9.3,
     already_seen: false,
     personal_rating: 0,
-    watch_later: false,
+    is_favorite: false,
   },
   {
     tmdb_id: 238,
@@ -103,7 +103,7 @@ export const MOVIES = [
     imdb_rating: 9.2,
     already_seen: true,
     personal_rating: 10,
-    watch_later: false,
+    is_favorite: false,
   },
   {
     tmdb_id: 496243,
@@ -114,7 +114,7 @@ export const MOVIES = [
     imdb_rating: 8.5,
     already_seen: false,
     personal_rating: 0,
-    watch_later: true,
+    is_favorite: true,
   },
   {
     tmdb_id: 129,
@@ -125,7 +125,7 @@ export const MOVIES = [
     imdb_rating: 8.6,
     already_seen: false,
     personal_rating: 0,
-    watch_later: true,
+    is_favorite: true,
   },
   {
     tmdb_id: 769,
@@ -136,7 +136,7 @@ export const MOVIES = [
     imdb_rating: 8.7,
     already_seen: false,
     personal_rating: 0,
-    watch_later: false,
+    is_favorite: false,
   },
   {
     tmdb_id: 424,
@@ -147,7 +147,7 @@ export const MOVIES = [
     imdb_rating: 9,
     already_seen: false,
     personal_rating: 0,
-    watch_later: false,
+    is_favorite: false,
   },
   {
     // The longest title in the fixture: it wraps to three lines in a phone column.
@@ -159,7 +159,7 @@ export const MOVIES = [
     imdb_rating: 9,
     already_seen: false,
     personal_rating: 0,
-    watch_later: false,
+    is_favorite: false,
   },
   {
     tmdb_id: 1891,
@@ -170,7 +170,7 @@ export const MOVIES = [
     imdb_rating: 8.7,
     already_seen: false,
     personal_rating: 0,
-    watch_later: false,
+    is_favorite: false,
   },
   {
     tmdb_id: 389,
@@ -181,7 +181,7 @@ export const MOVIES = [
     imdb_rating: 9,
     already_seen: false,
     personal_rating: 0,
-    watch_later: true,
+    is_favorite: true,
   },
   {
     tmdb_id: 372058,
@@ -192,7 +192,7 @@ export const MOVIES = [
     imdb_rating: 8.4,
     already_seen: false,
     personal_rating: 0,
-    watch_later: false,
+    is_favorite: false,
   },
   {
     tmdb_id: 274,
@@ -203,7 +203,7 @@ export const MOVIES = [
     imdb_rating: 8.6,
     already_seen: false,
     personal_rating: 0,
-    watch_later: false,
+    is_favorite: false,
   },
   {
     tmdb_id: 637,
@@ -214,7 +214,7 @@ export const MOVIES = [
     imdb_rating: 8.6,
     already_seen: false,
     personal_rating: 0,
-    watch_later: false,
+    is_favorite: false,
   },
   {
     tmdb_id: 1124,
@@ -225,6 +225,6 @@ export const MOVIES = [
     imdb_rating: 8.5,
     already_seen: false,
     personal_rating: 0,
-    watch_later: false,
+    is_favorite: false,
   },
 ]
