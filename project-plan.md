@@ -107,13 +107,15 @@ first and the system preference second.
    state. The duplication between the two pages became visible here and was extracted into
    `hooks/useMovieList.js` (the loading/ready/error triple and the fetch-once-on-mount effect,
    including the guard that drops a stale answer) and `components/MovieGrid.jsx`.
-9. [ ] **`components/AuthModal.jsx`** — the dialog itself is **done**: native `<dialog>` opened
-   with `showModal()`, so the focus trap, the backdrop, `Escape` and the focus returned to the
-   trigger all come from the browser; two modes, sign in and create account; closing on a
-   backdrop click; labels tied to inputs with `htmlFor`; errors in an `aria-live="polite"`
-   region. **What remains** is the live password checklist mirroring `backend/app/utils.py:9-21`
-   exactly — 8 characters, upper, lower, digit, and one of `!@#$%^&*(),.?":{}|<>_-` — with the
-   server staying the authority.
+9. [x] **`components/AuthModal.jsx`** — native `<dialog>` opened with `showModal()`, so the focus
+   trap, the backdrop, `Escape` and the focus returned to the trigger all come from the browser;
+   two modes, sign in and create account; closing on a backdrop click; labels tied to inputs with
+   `htmlFor`; errors in an `aria-live="polite"` region. The live password checklist lives in
+   `lib/password.js` and mirrors `backend/app/utils.py:9-21` rule for rule — 8 characters, upper,
+   lower, digit, and one of `!@#$%^&*(),.?":{}|<>_-` — with the server staying the authority. It
+   is tied to the field with `aria-describedby` and deliberately not wrapped in `aria-live`,
+   which would announce all five rules on every keystroke. The verdict is carried by a `✓` / `·`
+   glyph as well as by colour: WCAG 1.4.1 forbids colour as the only signal.
 
 **Verify:** `npm run dev` · both routes reachable, the browser back button works · the modal
 opens, traps focus, closes on `Escape` and returns focus to the button that opened it · the
