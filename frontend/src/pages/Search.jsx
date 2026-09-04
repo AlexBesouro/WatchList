@@ -45,7 +45,7 @@ export default function Search() {
   function toggleFavorite(movie) {
     setMovies((current) =>
       current.map((m) =>
-        m.tmdb_id === movie.tmdb_id ? { ...m, watch_later: !m.watch_later } : m,
+        m.tmdb_id === movie.tmdb_id ? { ...m, is_favorite: !m.is_favorite } : m,
       ),
     )
   }
