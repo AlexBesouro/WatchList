@@ -66,6 +66,13 @@ body text and 3:1 for the borders of interactive controls.
 
 Black text `#0A0A0A` on the green button reaches 8.69:1.
 
+A light palette sits on top as `:root[data-theme='light']`, overriding nine of these: `--bg`
+`#FFFFFF`, `--text` `#18181B` (17.72:1), `--muted` `#52525B` (7.73:1), `--accent` `#15803D`
+(5.02:1 on white, and white on it), `--error` `#B91C1C`. `--border` is not repeated — `#6B7280`
+clears its threshold on both grounds, 4.10:1 on black and 4.83:1 on white. The theme is stamped
+on `<html>` by an inline script in `index.html` before the first paint, from `localStorage`
+first and the system preference second.
+
 ---
 
 ## Day 2 (Thu 3 Sep) — the front-end, static, no network
@@ -75,33 +82,38 @@ Black text `#0A0A0A` on the green button reaches 8.69:1.
 2. [x] **Scaffold `frontend/`** — Vite 8, React 19, `react-router-dom` 7, and the
    `src/{api,components,context,pages}` layout. The template ships `oxlint`, not ESLint, which
    covers *la qualité du code est vérifiée* for the front-end the way `ruff` does for the back.
-3. [ ] **Strip the template and set up routing** — delete the counter demo, `App.css` and
+3. [x] **Strip the template and set up routing** — delete the counter demo, `App.css` and
    `src/assets/`. `App.jsx` becomes a `BrowserRouter` with two routes wrapped in one layout.
    Trap: `react-router-dom` 7 moved to `createBrowserRouter`, but the plain `<BrowserRouter>`
    element form still works and is one file shorter.
-4. [ ] **`index.css`** — the tokens above as custom properties, a mobile-first base, and one
+4. [x] **`index.css`** — the tokens above as custom properties, a mobile-first base, and one
    `@media (min-width: 768px)` breakpoint. Set `:focus-visible` explicitly in the accent green:
    the default outline is nearly invisible on black, and that single omission fails the keyboard
    criterion of CP3.
-5. [ ] **`components/Header.jsx`** — wordmark, two nav links, and on the right either a sign-in
-   button or the user's email with sign out. Landmarks (`header`, `nav`) rather than `div`s;
+5. [x] **`components/Header.jsx`** — wordmark, two nav links, the light/dark toggle and the
+   sign-in button. Landmarks (`header`, `nav`) rather than `div`s;
    the active link marked with `aria-current="page"`. No hamburger — two links do not justify a
-   menu, and the menu would bring its own accessibility work.
-6. [ ] **`components/MovieCard.jsx` and fixture data** — poster, title, year, IMDb rating, one
+   menu, and the menu would bring its own accessibility work. Swapping the sign-in button for
+   the signed-in address is step 19.
+6. [x] **`components/MovieCard.jsx` and fixture data** — poster, title, year, IMDb rating, one
    action button. A film with no poster and one with no IMDb rating are both in the fixture,
    because both exist in the real data and both must render without breaking.
-7. [ ] **`pages/Search.jsx`, static** — the search field, the grid, the pagination, driven by
-   the fixture. All four states rendered and reachable by hand: idle before any search, loading,
-   empty result, error. Writing them now costs nothing; retro-fitting them after the wiring is
-   where they get skipped.
-8. [ ] **`pages/Favorites.jsx`, static** — the same cards with a remove button, plus the empty
-   state.
-9. [ ] **`components/AuthModal.jsx`** — a native `<dialog>` opened with `showModal()`, which
-   gives the focus trap, the backdrop and `Escape` for free. Two tabs. Validation mirrors
-   `backend/app/utils.py:9-21` exactly — 8 characters, upper, lower, digit, and one of
-   `!@#$%^&*(),.?":{}|<>_-` — shown live, with the server staying the authority. Errors in an
-   `aria-live="polite"` region, labels tied to inputs with `htmlFor`, focus returned to the
-   trigger on close.
+7. [x] **`pages/Search.jsx`, static** — the search field, the grid, the pagination, driven by
+   the fixture. Four states rendered and reachable by hand: loading, results, empty, error.
+   There is no idle state: the home page loads the popular list on mount, so it is never blank.
+   Writing the states now costs nothing; retro-fitting them after the wiring is where they get
+   skipped.
+8. [x] **`pages/Favorites.jsx`, static** — the same cards with a remove button, plus the empty
+   state. The duplication between the two pages became visible here and was extracted into
+   `hooks/useMovieList.js` (the loading/ready/error triple and the fetch-once-on-mount effect,
+   including the guard that drops a stale answer) and `components/MovieGrid.jsx`.
+9. [ ] **`components/AuthModal.jsx`** — the dialog itself is **done**: native `<dialog>` opened
+   with `showModal()`, so the focus trap, the backdrop, `Escape` and the focus returned to the
+   trigger all come from the browser; two modes, sign in and create account; closing on a
+   backdrop click; labels tied to inputs with `htmlFor`; errors in an `aria-live="polite"`
+   region. **What remains** is the live password checklist mirroring `backend/app/utils.py:9-21`
+   exactly — 8 characters, upper, lower, digit, and one of `!@#$%^&*(),.?":{}|<>_-` — with the
+   server staying the authority.
 
 **Verify:** `npm run dev` · both routes reachable, the browser back button works · the modal
 opens, traps focus, closes on `Escape` and returns focus to the button that opened it · the
