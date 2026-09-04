@@ -1,257 +1,268 @@
 <!-- markdownlint-disable MD029 -->
-<!-- Step numbers run continuously across the four days so a step can be cited by number alone. -->
+<!-- Steps are numbered continuously 1..26 across the day sections so that a step can be
+     cited by its number alone. MD029 would demand each list restart at 1. -->
 
-# Tasks — WatchList
+# WatchList — roadmap
 
-Roadmap for the DWWM study project, **2 → 5 September 2026**. Scope authority:
-`../projet_dwwm/REV2_DWWM_V04_02072024.pdf` (the evaluation reference) and
-`../projet_dwwm/REAC_DWWM_V04_02072024.pdf` (the competency wording).
-One step = one branch `<type>/<subject>` off `main` → PR → merge.
+`[ ]` open · `[x]` done, and the verification command was run and its output seen.
 
-Legend: `[x]` verified · `[ ]` to do.
-A box is ticked only when its verification command has run **and its output was seen**.
+## What this is
 
----
+WatchList is the second of the two projects defended for the DWWM. `geo-enrich` carries the
+back-end story and has no front-end at all, so WatchList exists to carry the front-end.
 
-## What this project has to prove
+Six competencies are the target. Their titles are quoted from the REAC because the dossier
+reproduces them word for word.
 
-Six competencies. Their titles are quoted verbatim from the REAC, because the dossier must
-reproduce them word for word.
-
-| | Competency (REAC verbatim) | Where it is earned |
+| | Competency (REAC verbatim) | Earned by |
 | --- | --- | --- |
-| CP2 | *Maquetter des interfaces utilisateur web ou web mobile* | Figma: 2 pages + 1 modal, each at 2 widths, + screen-flow diagram |
-| CP3 | *Réaliser des interfaces utilisateur statiques web ou web mobile* | React + hand-written CSS, responsive, accessibility, eco-design |
-| CP4 | *Développer la partie dynamique des interfaces utilisateur* | fetch → REST API, validation, error handling, Vitest |
-| CP5 | *Mettre en place une base de données relationnelle* | Conceptual/logical/physical models, SQL script, roles, test dataset, backup |
-| CP6 | *Développer des composants d'accès aux données SQL et NoSQL* | SQLAlchemy (SQL) + Redis key/value (NoSQL) |
-| CP7 | *Développer des composants métier côté serveur* | routers, security, OOP, tests |
+| CP2 | *Maquetter des interfaces utilisateur web ou web mobile* | `docs/mockups.md`: style guide, wireframes at two widths, screen-flow diagram |
+| CP3 | *Réaliser des interfaces utilisateur statiques web ou web mobile* | React components and hand-written CSS, responsive, accessible |
+| CP4 | *Développer la partie dynamique des interfaces utilisateur* | `client.js`, `AuthContext`, form validation, error handling, 3 Vitest tests |
+| CP5 | *Mettre en place une base de données relationnelle* | one migration, `schema.sql`, `roles.sql`, seed data, backup and restore |
+| CP6 | *Développer des composants d'accès aux données SQL et NoSQL* | SQLAlchemy for SQL, Redis for key/value, both with their failure paths |
+| CP7 | *Développer des composants métier côté serveur* | routers, JWT auth, password policy, per-user isolation, pytest |
 
-**Scope ceiling: 2 pages and 1 modal.** A Search page and a Favorites page (two tabs: watched
-and to-watch), with sign-in and sign-up in a modal dialog opened from the header. Theme: black
-with a single green accent. No feature is added to satisfy an idea; every screen exists to
-exercise a competency.
+CP1 and CP8 (environment, deployment) are **out of scope** — they are not among the six, and
+four days do not stretch. No Dockerfile for the app, no public deployment.
 
-**The `scripts/` folder was deleted and is rebuilt from scratch at the end (step 33).** Until
-then every command is written out in full. Three things that lived there are not shell
-convenience and cannot wait: the compose file (step 3), the seed data (step 15) and the
-TMDB/OMDB stand-in server (step 18). Each is rebuilt at the point it is first needed.
+## Scope ceiling
+
+Two pages and one modal. Every screen exists to exercise a competency; nothing is added
+because it would be nice.
+
+- **Search `/`** — one text field, a grid of film cards, pagination. Card shows poster, title,
+  year, IMDb rating, and one button: add to favourites.
+- **Favourites `/favorites`** — the same cards with a remove button. Logged out, it opens the
+  modal instead of rendering an empty list.
+- **Auth modal** — a native `<dialog>` over either page, two tabs: sign in (2 fields), sign up
+  (4 fields: email, password, first name, last name).
+
+**Favourites is the `movies_to_be_watched` table.** The `watched_movies` table needs a
+`personal_rating` on insert, which is exactly the extra input the scope removes. It stays in
+the database, in the API and under test — it is CP5 and CP7 evidence — but the SPA never
+touches it.
+
+Order of work: the whole front-end first against fixture data, then the back-end, then the
+wiring. That is only possible because every network call lives in one file, `client.js`.
+
+## Design tokens
+
+Decided once, transcribed into `frontend/src/index.css` at step 4 and documented in
+`docs/mockups.md` at step 23. Contrast ratios are computed, not estimated; WCAG asks 4.5:1 for
+body text and 3:1 for the borders of interactive controls.
+
+| Token | Hex | Use | On `#0A0A0A` |
+| --- | --- | --- | --- |
+| `--bg` | `#0A0A0A` | page background | — |
+| `--surface` | `#141414` | cards, modal | — |
+| `--text` | `#F5F5F5` | body text | 18.16:1 |
+| `--muted` | `#A3A3A3` | secondary text | 7.85:1 |
+| `--accent` | `#22C55E` | links, buttons, focus ring | 8.69:1 |
+| `--accent-strong` | `#16A34A` | hover, active | 6.01:1 |
+| `--error` | `#F87171` | validation messages | 7.16:1 |
+| `--border` | `#6B7280` | borders of inputs and buttons | 4.10:1 |
+| `--divider` | `#262626` | decorative separators only | 1.31:1, never a control |
+
+Black text `#0A0A0A` on the green button reaches 8.69:1.
+
+A light palette sits on top as `:root[data-theme='light']`, overriding nine of these: `--bg`
+`#FFFFFF`, `--text` `#18181B` (17.72:1), `--muted` `#52525B` (7.73:1), `--accent` `#15803D`
+(5.02:1 on white, and white on it), `--error` `#B91C1C`. `--border` is not repeated — `#6B7280`
+clears its threshold on both grounds, 4.10:1 on black and 4.83:1 on white. The theme is stamped
+on `<html>` by an inline script in `index.html` before the first paint, from `localStorage`
+first and the system preference second.
 
 ---
 
-## Day 1 (Wed 2 Sep) — The back-end runs, and is safe to point a browser at
+## Day 2 (Thu 3 Sep) — the front-end, static, no network
 
-The back-end does not currently start: `backend/app/routers/movie_list.py:18-21` carries a duplicated
-decorator and signature from merge `93667f9`, so every import of `app.main` raises
-`IndentationError`. Nothing below can be verified until step 4 lands.
+1. [x] **Split the repository into `backend/` and `frontend/`** — Poetry adopted, all 37 Python
+   files moved with `git mv`, documentation realigned. Merged as PR #2.
+2. [x] **Scaffold `frontend/`** — Vite 8, React 19, `react-router-dom` 7, and the
+   `src/{api,components,context,pages}` layout. The template ships `oxlint`, not ESLint, which
+   covers *la qualité du code est vérifiée* for the front-end the way `ruff` does for the back.
+3. [x] **Strip the template and set up routing** — delete the counter demo, `App.css` and
+   `src/assets/`. `App.jsx` becomes a `BrowserRouter` with two routes wrapped in one layout.
+   Trap: `react-router-dom` 7 moved to `createBrowserRouter`, but the plain `<BrowserRouter>`
+   element form still works and is one file shorter.
+4. [x] **`index.css`** — the tokens above as custom properties, a mobile-first base, and one
+   `@media (min-width: 768px)` breakpoint. Set `:focus-visible` explicitly in the accent green:
+   the default outline is nearly invisible on black, and that single omission fails the keyboard
+   criterion of CP3.
+5. [x] **`components/Header.jsx`** — wordmark, two nav links, the light/dark toggle and the
+   sign-in button. Landmarks (`header`, `nav`) rather than `div`s;
+   the active link marked with `aria-current="page"`. No hamburger — two links do not justify a
+   menu, and the menu would bring its own accessibility work. Swapping the sign-in button for
+   the signed-in address is step 19.
+6. [x] **`components/MovieCard.jsx` and fixture data** — poster, title, year, IMDb rating, one
+   action button. A film with no poster and one with no IMDb rating are both in the fixture,
+   because both exist in the real data and both must render without breaking.
+7. [x] **`pages/Search.jsx`, static** — the search field, the grid, the pagination, driven by
+   the fixture. Four states rendered and reachable by hand: loading, results, empty, error.
+   There is no idle state: the home page loads the popular list on mount, so it is never blank.
+   Writing the states now costs nothing; retro-fitting them after the wiring is where they get
+   skipped.
+8. [x] **`pages/Favorites.jsx`, static** — the same cards with a remove button, plus the empty
+   state. The duplication between the two pages became visible here and was extracted into
+   `hooks/useMovieList.js` (the loading/ready/error triple and the fetch-once-on-mount effect,
+   including the guard that drops a stale answer) and `components/MovieGrid.jsx`.
+9. [x] **`components/AuthModal.jsx`** — native `<dialog>` opened with `showModal()`, so the focus
+   trap, the backdrop, `Escape` and the focus returned to the trigger all come from the browser;
+   two modes, sign in and create account; closing on a backdrop click; labels tied to inputs with
+   `htmlFor`; errors in an `aria-live="polite"` region. The live password checklist lives in
+   `lib/password.js` and mirrors `backend/app/utils.py:9-21` rule for rule — 8 characters, upper,
+   lower, digit, and one of `!@#$%^&*(),.?":{}|<>_-` — with the server staying the authority. It
+   is tied to the field with `aria-describedby` and deliberately not wrapped in `aria-live`,
+   which would announce all five rules on every keystroke. The verdict is carried by a `✓` / `·`
+   glyph as well as by colour: WCAG 1.4.1 forbids colour as the only signal.
 
-1. [x] **Write this roadmap** — `project-plan.md`, the file you are reading. `CLAUDE.md` treats
-   it as the session-start read, and it was empty.
-2. [x] **Adopt Poetry as the dependency manifest** — same tooling as `stage-alex`, so one
-   defence does not have to account for two package managers. `pyproject.toml` with
-   `package-mode = false`, `[tool.pytest.ini_options]` carrying `testpaths` and
-   `pythonpath = ["."]`, a `dev` group, `poetry.toml` pinning the venv in-project, and a
-   committed `poetry.lock`. `bcrypt` stays pinned at exactly 4.0.1 — passlib 1.7.4 raises on
-   4.1 and later. Reasoning recorded in `notes/decisions.md`.
-3. [ ] **Write `.env` and a root `compose.yml`** — `Settings()` runs at import time, so nothing
-   imports without `.env`; copy `.env_example` and set **`DATABASE_PORT=5442`**, since the
-   template says 5432 and contradicts the container. The compose file declares postgres and
-   redis and lives at the repository root, where `docker compose up -d` finds it with no `-f`
-   flag. It is also the CP1 evidence: *les conteneurs implémentent les services requis*.
-4. [ ] **Fix the merge wreck** — `backend/app/routers/movie_list.py:18-21`: drop the first decorator
-   and signature pair, keep `params: schemas.MovieSearch = Depends()`, the query-string form
-   introduced by commit `9805e71`.
-5. [ ] **Close the cross-user leak** — `GET /movies/` has no auth dependency
-   (`movie_list.py:19`) and reads every user's rows with `.all()` (`movie_list.py:55,57`), so
-   it hands out other people's `personal_rating`. Add `get_current_user` and filter both
-   queries by `current_user.user_id`. Save the before and after: this is OWASP A01 Broken
-   Access Control found in our own code, and it is the dossier's security-watch chapter.
-6. [ ] **Add `DELETE /to-watch/{tmdb_id}`** — the only endpoint the SPA needs and does not
-   have; Favorites must delete from both tabs. Mirror `watched_list.py:45`, which already
-   filters by owner, and rename its path parameter `id` → `tmdb_id` (it is matched against
-   `tmdb_id`, not the primary key).
-7. [ ] **Make Redis a cache, not a dependency** — `movie_list.py:29,43` are unguarded, so Redis
-   down means HTTP 500. Wrap in `try/except redis.RedisError` and fall through to TMDB. Four
-   lines, and it is the CP6 criterion on handling exception cases.
-8. [ ] **Delete the leftovers** — `backend/app/routers/smth.py`, a public stub returning `"Rabotaet"`,
-   mounted at `main.py:3,17`.
-9. [ ] **Fill the test gaps** — `backend/tests/test_login.py` is 0 bytes. Add login success, wrong
-   password, unknown email; a `/to-watch` create-read-delete cycle; a 401 on a missing token;
-   and the regression test for step 5. Reset `my_app.dependency_overrides` in the `client`
-   fixture — `conftest.py:36` leaks it across the whole session.
+**Verify:** `npm run dev` · both routes reachable, the browser back button works · the modal
+opens, traps focus, closes on `Escape` and returns focus to the button that opened it · the
+whole flow is usable with the keyboard alone · at 375 px nothing overflows horizontally.
 
-**Verify:** `docker compose up -d`, then from `backend/`: `.venv/Scripts/alembic upgrade head` ·
-`.venv/Scripts/pytest -q` green · `.venv/Scripts/uvicorn app.main:my_app --reload` →
-`http://localhost:8000/docs` lists the routes without `/smth` and with the new DELETE.
+## Day 3 (Fri 4 Sep) — the back-end, and the wiring
 
-## Day 2 (Thu 3 Sep) — CP2 and CP5, the two that cannot be improvised
-
-Neither of these is code, and neither can be produced the night before. Juries check them
-first.
-
-10. [ ] **Mockups in Figma** — the two pages and the auth modal, each at **desktop and mobile**
-    width. Both adaptations are explicitly required, in the dossier and in the defence. Fix the
-    visual identity here: black background, one green accent, a 2-step type scale, one spacing
-    unit. Choose the green with a contrast checker now, not in CSS later — a mid green such as
-    `#22c55e` clears 4.5:1 on `#0a0a0a`, a dark forest green does not.
-11. [ ] **Screen-flow diagram** — a separate, explicitly required deliverable, not a
-    nice-to-have. Search to Favorites and back, with the auth modal drawn as an overlay that
-    any authenticated-only action opens, and the return arrow to the action the user was
-    attempting. Mermaid in `docs/mockups.md`.
-12. [ ] **Squash the migrations** — delete all 8 files in `backend/alembic/versions/` (two have broken
-    downgrades: `ada860ce836a:22-27` drops unnamed constraints, `dd1da675dc2e:33` drops the
-    wrong constraint name), rename the two space-containing tables in `backend/app/models.py` to
-    `watched_movies` and `movies_to_watch`, add a naming convention to `Base.metadata`, then
-    generate one `initial schema` revision. This wipes the local data, which is why the seed
-    script comes back at step 15.
-13. [ ] **`docs/db/schema.sql`** — the creation script the dossier requires, taken from the
-    clean database with `pg_dump --schema-only --no-owner`. Generated, not hand-written, so it
-    cannot drift from the code.
-14. [ ] **`docs/db/roles.sql`** — a `watchlist_app` role holding `SELECT, INSERT, UPDATE,
-    DELETE` on the three tables and nothing else. A literal CP5 criterion that almost every
-    candidate skips.
-15. [ ] **Rebuild the seed script** — `scripts/seed.py` was deleted with the rest of the
-    folder, but the data it produced is a graded deliverable: CP5 asks for *un jeu d'essai
-    complet dans une base de données de test*. Two users with populated lists, so that the
-    isolation fixed in step 5 can be demonstrated rather than asserted.
-16. [ ] **Backup and restore** — `pg_dump` and `pg_restore` against the container, run both
-    ways to prove the restore works, and write the procedure into `docs/db/backup.md`. Another
-    literal CP5 criterion. The convenience wrapper lands later, at step 33.
-17. [ ] **Conceptual, logical and physical data models** — Merise, following
-    `../projet_dwwm/Cheatsheet-merise.pdf`: entities singular and uppercase, identifiers
-    underlined, cardinalities shown. Three tables only. Mermaid ER diagrams in
-    `docs/db/model.md`; the physical model is the `schema.sql` from step 13.
-
-**Verify:** `docker compose down -v && docker compose up -d`, then `alembic upgrade head` and
-the seed script, rebuild the database from zero · `watchlist_app` can read and write but not
-`DROP` · a restore from the dump brings the seeded rows back.
-
-## Day 3 (Fri 4 Sep) — React: skeleton, auth modal, search page
-
-18. [ ] **Rebuild the TMDB/OMDB stand-in server** — a small FastAPI app on port 9100 mimicking
-    the two upstreams, so the SPA can be built and demonstrated with no API keys. Skip only if
-    real TMDB and OMDB keys are on hand; the front-end cannot be exercised without one or the
-    other.
-19. [ ] **Scaffold `frontend/`** — Vite React template plus `react-router-dom`. Layout
-    `src/{api,components,context,pages}`. Add `node_modules/` and `dist/` to `.gitignore`.
-20. [ ] **`src/api/client.js`** — one fetch wrapper: base URL from `VITE_API_URL`, the
+10. [ ] **`.env` and a root `compose.yml`** — `Settings()` runs at import time, so nothing in
+    `backend/` imports without `.env`. Copy `backend/.env_example` and set
+    **`DATABASE_PORT=5442`**: the template says 5432 and contradicts the container. The compose
+    file declares postgres and redis and sits at the repository root, where `docker compose up
+    -d` finds it with no `-f`.
+11. [ ] **Fix the merge wreck** — `backend/app/routers/movie_list.py:18-21` carries a duplicated
+    decorator and signature, so `import app.main` raises `IndentationError` and the whole test
+    suite is dead. Keep the `Depends()` form; the bare `params: schemas.MovieSearch` form would
+    demand a request body on a GET.
+12. [ ] **The three schema changes the scope requires** — `MovieSearch` becomes an **optional**
+    `query: str | None` plus `page: int`. An empty query keeps the existing `discover/movie`
+    call, which is what fills the home page with popular films; a query of three characters or
+    more goes to `search/movie` instead;
+    `poster_path` is added to `MovieResponse` and read from the raw result at
+    `movie_list.py:70`; `ToBeWatched.imdb_id` and `imdb_rating` become `Optional` with nullable
+    columns, because a film absent from OMDB currently returns 422 on add.
+13. [ ] **Close the cross-user leak** — `get_movies` has no `get_current_user` dependency and
+    reads both tables with `.all()` (`movie_list.py:19,55,57`), so every user's rows are
+    cross-referenced. This is OWASP A01, found in our own code; write the before and after down
+    as it is fixed, because it is the whole of the security-watch chapter at step 24. Add one
+    regression test: user B never sees user A's rows.
+14. [ ] **Three small repairs** — wrap the two Redis calls (`movie_list.py:29,43`) in
+    `try/except redis.RedisError` so a stopped Redis degrades to a cache miss instead of a 500,
+    which is CP6's exception-handling criterion in four lines; add
+    `DELETE /to-watch/{tmdb_id}`, mirroring `watched_list.py:45`; delete `app/routers/smth.py`
+    and its mount in `main.py:3,17`.
+15. [ ] **One migration** — delete all 8 files in `backend/alembic/versions/` (two have broken
+    downgrades) and generate a single `initial schema`. Do it here, not later: the table renames
+    (`"watched movies"` and `"movies to be watched"` carry spaces) and the nullable columns from
+    step 12 need a migration anyway, and one is cheaper than two. Add a naming convention to
+    `Base.metadata` so constraints stop getting random names.
+16. [ ] **Seed script** — two users with populated lists. This is the CP5 *jeu d'essai*, and the
+    two accounts are what proves the step 13 isolation fix by demonstration rather than
+    assertion.
+17. [ ] **TMDB/OMDB stand-in server** — a small FastAPI app on port 9100 serving `search/movie`,
+    `external_ids` and the OMDB rating, so the SPA runs with no API keys. Skip only if real keys
+    are on hand.
+18. [ ] **`src/api/client.js`** — one fetch wrapper: base URL from `VITE_API_URL`, the
     `Authorization: Bearer` header, and the single place that turns a non-2xx into a thrown
-    `ApiError` carrying `status` and the FastAPI `detail`. Every screen's error message comes
-    from here. Mind the trailing slash: the routers register `"/"`, so call `/movies/`, not
-    `/movies`, or eat a 307.
-21. [ ] **`src/context/AuthContext.jsx`** — token, current user, `login()`, `logout()`, and
-    `openAuth()`. There is no login route to redirect to, so an authenticated-only action on a
-    logged-out session opens the modal instead. The token goes in `localStorage`; write the
-    trade-off into `docs/security.md` rather than leaving it unexamined.
-22. [ ] **`src/components/AuthModal.jsx`** — one dialog, two tabs. Client-side validation
-    mirroring `backend/app/utils.py:9-21` (at least 8 characters, upper, lower, digit, special) shown
-    live, with the server staying the authority; errors in an `aria-live="polite"` region,
-    labels tied to inputs with `htmlFor`. Build it on the native `<dialog>`: `showModal()`
-    gives the focus trap, the backdrop and `Escape` for free, and focus must return to the
-    trigger on close.
-23. [ ] **Search page (`/`)** — `GET /movies/` with year, language and page controls. Cards
-    show title, OMDB rating and the two flags the API computes (`already_seen`, `watch_later`),
-    plus buttons posting to `/watched/` and `/to-watch/`. Logged out, the cards still render
-    but the buttons call `openAuth()`. Loading and empty states explicit: the endpoint is slow
-    on a cache miss.
+    `ApiError` carrying `status` and the FastAPI `detail`. Every error message on screen comes
+    from here. Trap: the routers register `"/"`, so call `/movies/`, not `/movies`, or eat a 307
+    that drops the Authorization header.
+19. [ ] **`src/context/AuthContext.jsx` and the wiring** — token, current user, `login()`,
+    `logout()`, and `openAuth()`: there is no login route to redirect to, so an
+    authenticated-only action on a logged-out session opens the modal and replays the action
+    after success. Swap the fixtures for real calls on both pages. The token goes in
+    `localStorage`; the trade-off is written into `docs/security.md` at step 24 rather than left
+    unexamined. Add `127.0.0.1:5173` to `origins` in `main.py:19` — only the `localhost` alias
+    is there.
 
-**Verify:** an add button while logged out opens the modal; registering in it closes the modal
-and completes the original action · `Escape` closes it and focus lands back on the trigger ·
-with the API stopped the page shows a readable error, not a blank screen.
+**Verify:** `docker compose up -d`, then from `backend/`: `.venv/Scripts/alembic upgrade head`,
+the seed script, `.venv/Scripts/uvicorn app.main:my_app --reload` · search returns cards with
+posters · adding while logged out opens the modal, and the add completes after signing in ·
+stopping Redis degrades the search instead of returning 500 · logging in as the second seeded
+user shows none of the first user's rows.
 
-## Day 4 (Sat 5 Sep) — Favorites, responsive, accessibility, dossier material
+## Day 4 (Sat 5 Sep) — the evidence
 
-24. [ ] **Favorites page (`/favorites`)** — two tabs over `GET /watched/` and `GET /to-watch/`,
-    delete on both (step 6), `personal_rating` displayed. Tabs as real buttons carrying
-    `aria-selected`, not styled divs. Reached logged out, it opens the modal instead of
-    rendering an empty list.
-25. [ ] **CSS pass** — one `index.css`: custom properties for the black-and-green identity,
-    mobile-first, a single `@media (min-width: 768px)` breakpoint, contrast at least 4.5:1,
-    Grid for the film list and Flexbox for the bars. On a dark theme the focus ring is the
-    trap — the default outline is nearly invisible on black, so set `:focus-visible`
-    explicitly in the accent green.
-26. [ ] **Accessibility pass** — `lang` on `<html>`, one `<h1>` per page, landmarks, `alt` on
-    every poster, full keyboard traversal, errors announced, and the modal's focus behaviour
-    re-checked after the CSS lands. Record what was checked in `docs/accessibility.md` against
-    the RGAA, alongside the eco-design decisions: no UI framework, no icon font, posters
-    requested at `w200`, the Redis cache avoiding repeat upstream calls.
-27. [ ] **`docs/test-dataset.md`** — the mandatory chapter on the most representative feature.
-    Take *add a film to my watched list*: input data, expected data, obtained data, and the
-    analysis of any gap.
-28. [ ] **`docs/tech-watch.md`** — the other mandatory chapter. Sources: ANSSI, CERT-FR, OWASP,
-    CNIL. Then the real find: the step 5 cross-user leak, its OWASP A01 classification, and the
-    fix diff.
-29. [ ] **`docs/security.md`** — the app mapped onto the OWASP Top 10: A01 (the fix and the
-    per-user filters), A02 (bcrypt, no plaintext), A03 (SQLAlchemy parameterises, no
-    string-built SQL), A07 (JWT expiry, password policy) — plus the honest gaps: no rate
-    limiting, no refresh token, five-hour non-revocable tokens.
-30. [ ] **`docs/deployment.md` and an app Dockerfile** — CP8's written procedure and documented
-    scripts. Add `api` and `frontend` services to `compose.yml` behind a profile, and prove
-    `docker compose --profile app up` serves the SPA.
-31. [ ] **Vitest — three tests, no more** — the password validator rejects a weak input,
-    `client.js` throws `ApiError` on a 401, the film list renders the "already seen" flag from
-    a stubbed response. One per layer: pure logic, the network boundary, a rendered component.
-    That is a defensible answer to "what did you test and why", which a jury asks more often
-    than "how many". Run last, once the pages are stable.
-32. [ ] **Screenshots, README and the two mandated docs** — both pages and the open modal at
-    375 px and 1440 px, for the dossier and the slide deck. The README is two lines today and
-    needs install, run, an environment-variable table and the architecture. `docs/JOURNAL.md`
-    and `docs/GLOSSARY.md` are mandated by `CLAUDE.md` and do not exist.
-33. [ ] **Rebuild `scripts/`** — the convenience layer, written last, once every command it
-    wraps is known to work. One entry point per concern: infrastructure, the app, the tests,
-    the seed, the backup. Windows detail that cost time before: the venv executables live in
-    `.venv/Scripts`, not `.venv/bin`, so probe for both instead of hard-coding either.
+20. [ ] **Minimal back-end tests** — `backend/tests/test_login.py` is 0 bytes. Add login
+    success, wrong password, unknown email, a `/to-watch` create-read-delete cycle, a 401 on a
+    missing token, and the isolation test from step 13. Reset `my_app.dependency_overrides` in
+    the `client` fixture: `conftest.py:36` leaks it across the whole session.
+21. [ ] **Three Vitest tests, no more** — the password validator rejects a weak input,
+    `client.js` throws `ApiError` on a 401, and `MovieCard` renders the "in favourites" state
+    from a stubbed prop. One per layer — pure logic, the network boundary, a rendered component
+    — which is a defensible answer to "what did you test and why", a question juries ask more
+    often than "how many".
+22. [ ] **`docs/db/`** — `model.md` with the conceptual and logical models as Mermaid ER
+    diagrams following Merise, `schema.sql` produced by `pg_dump --schema-only --no-owner` so it
+    cannot drift from the code, `roles.sql` granting a `watchlist_app` role `SELECT, INSERT,
+    UPDATE, DELETE` on the three tables and nothing else, and a backup taken and restored with
+    the output pasted in. The role and the restore are literal CP5 criteria that most candidates
+    skip.
+23. [ ] **`docs/mockups.md`** — the CP2 deliverable, replacing the cancelled Figma file: the
+    style guide (the token table above, with its contrast ratios), block wireframes of the three
+    screens at desktop and mobile width, the screen-flow diagram in Mermaid with the modal drawn
+    as an overlay any authenticated-only action opens, and screenshots at 375 px and 1440 px.
+    Both adaptations are explicitly required, in the dossier and in the defence.
+24. [ ] **Three dossier chapters** — `security.md` maps the app onto the OWASP Top 10 (A01 with
+    the step 13 diff, A02 bcrypt, A03 SQLAlchemy parameterising, A07 JWT expiry and the password
+    policy) and states the gaps honestly: no rate limiting, no refresh token, non-revocable
+    tokens. `test-dataset.md` is the mandatory *jeu d'essai* on one feature — add a film to
+    favourites — as input, expected, obtained, and the analysis of the gap. `tech-watch.md` is
+    the mandatory *veille*: ANSSI, CERT-FR, OWASP, CNIL, then our own A01 find.
+25. [ ] **`README.md`, `docs/JOURNAL.md`, `docs/GLOSSARY.md`** — the README is two lines today
+    and needs install, run, an environment-variable table and the request flow. The other two are
+    mandated by `CLAUDE.md` and do not exist.
+26. [ ] *(optional)* **`scripts/`** — the wrappers, rebuilt last, once every command they wrap
+    has been written out and verified. Windows detail that cost time before: the venv
+    executables live in `.venv/Scripts`, not `.venv/bin`, so probe for both instead of
+    hard-coding either. Dropped without regret if the clock runs out.
 
-**Verify:** a cold start on a clean machine following the README alone · the back-end suite and
-`npm test` both green · both pages and the modal photographed at both widths.
-
-## If time remains
-
-Dropped first, and dropped without regret — nothing here blocks the defence.
-
-- [ ] *(bonus)* **Rename the two misnamed handlers** — `to_be_watched.py:14` is called
-  `add_watched_movie` and `:41` is called `watched_movies`, colliding with `watched_list.py` in
-  the OpenAPI document and poisoning any generated client.
-- [ ] *(bonus)* **OpenAPI metadata** — title, version, tags, `operation_id`. `FastAPI()` at
-  `main.py:11` takes no arguments at all.
+**Verify:** a cold start on a clean machine following the README alone · `pytest` and
+`npm test` both green · the restore brings the seeded rows back · all three screens
+photographed at both widths.
 
 ---
 
 ## Running throughout
 
-- [ ] **One branch per step** — `<type>/<subject>` off `main`, then a PR. Never commit on
-  `main`.
-- [ ] **Tick a box only after its verification command has run**, and only if the output was
-  actually read.
-- [ ] **Append to `docs/JOURNAL.md` at the end of each day** — what was done, and the concept
-  it taught. It is the raw material for the dossier's reflective chapters.
-- [ ] **Anything noticed but out of scope goes to the Backlog below**, never into the current
-  diff.
+- [ ] **One branch per unit of work** — `<type>/<subject>` off `main`, then a PR. Never commit
+  on `main`.
+- [ ] **Tick a box only after the verification command has run** and its output was read.
+- [ ] **Append to `docs/JOURNAL.md` at the end of each day** — what was done and the concept it
+  taught. It is the raw material for the dossier's reflective chapters.
+- [ ] **Anything noticed but out of scope goes to the Backlog**, never into the current diff.
 
 ## Backlog
 
-Real defects found while auditing the repository, which four days do not have room for. They
-belong in the dossier's "what is left to do", which scores better than silence.
+Real defects found in the audit that the remaining days cannot absorb. They belong in the
+dossier's "what is left to do", which scores better than silence.
 
-- `PATCH /users/` takes `CreateUser`, whose four fields are all required, so
-  `exclude_unset=True` (`user.py:52`) excludes nothing and a partial body returns 422. It needs
-  an `UpdateUser` schema with optional fields. Its `db.commit()` (`user.py:72`) is unwrapped,
-  unlike the one in `create_user`.
+- `PATCH /users/` takes `CreateUser`, whose four fields are all required, so `exclude_unset=True`
+  (`user.py:52`) excludes nothing and a partial body returns 422. It needs an `UpdateUser`
+  schema. Its `db.commit()` (`user.py:72`) is unwrapped.
+- `OAuth2PasswordBearer(tokenUrl="login")` advertises a form-encoded login, but `login.py:11`
+  takes JSON — the Authorize button in `/docs` cannot work.
 - Emails are never normalised (`models.py:14`), so `Alice@x.com` and `alice@x.com` are two
-  accounts, and someone who signs up with a capital cannot log in with lowercase.
+  accounts and a capitalised signup cannot log in.
 - Unknown-email login returns instantly while a real one costs a bcrypt verify — user
   enumeration by timing (`login.py:17`).
-- `utils.py:37-57` opens an `aiohttp.ClientSession` per film, about 20 per page, never uses
-  `async with` on the responses, and has no timeout and no `raise_for_status()`.
+- `utils.py:37-57` opens an `aiohttp.ClientSession` per film, never uses `async with` on the
+  responses, and has no timeout and no `raise_for_status()`.
 - `async def` handlers run blocking psycopg2 queries on the event loop (`movie_list.py:19,55`).
 - `except IntegrityError` reports 409 "already exists" for any integrity failure, including a
   `NOT NULL` violation (`watched_list.py:32`, `to_be_watched.py:33`).
 - `schemas.ToBeWatched` lacks `from_attributes` while serving as an ORM `response_model`
   (`to_be_watched.py:40`).
-- `backend/alembic.ini:65` holds a dead literal f-string with a typo — `setting.` for `settings.`.
-- **No `.gitattributes`** — line endings are left to each machine's `core.autocrlf`. Harmless
-  for Markdown, fatal for a shell script: a `.sh` checked out with CRLF fails as
-  `$'\r': command not found`, an error that points nowhere near its cause. Matters from step 33.
-- No pre-commit hook, no CI, no LICENSE. Ruff is installed but never run automatically.
-- `postman/README.md` is French, while `CLAUDE.md` requires English in files. Touching it means
-  translating it in the same change.
+- No OpenAPI metadata: no title, version, tags or `operation_id`; two handlers share the name
+  `watched_movies`, which poisons any generated client.
+- `alembic.ini:65` holds a dead literal f-string with a typo — `setting.` for `settings.`.
+- No `.gitattributes`. Any `.sh` file committed from Windows can arrive with CRLF and die as
+  `$'\r': command not found`, an error that points everywhere except its cause. Matters from
+  step 26.
+- `frontend/public/placeholder.png` weighs 284 kB for an image that carries no
+  information. It is cached after the first request, but eco-design is graded and the
+  number gets asked about; re-exporting it under 20 kB takes a minute.
+- No CI, no pre-commit, no LICENSE.
+- The `watched_movies` table has no UI. Fine for now — it is API and test evidence — but the
+  README must say so, or a jury reads it as dead code.
+- `origin/prep-entretien` is a dead remote branch from the repository's interview past.
+- `backend/postman/README.md` and `backend/tests/test_watched.py` are in French; `CLAUDE.md`
+  requires English in files, and touching one means translating it.
