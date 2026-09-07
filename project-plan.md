@@ -4,7 +4,8 @@
 
 # WatchList — roadmap
 
-`[ ]` open · `[x]` done, and the verification command was run and its output seen.
+`[ ]` open · `[x]` done, and the verification command was run and its output seen · `[-]` dropped,
+with the reason recorded in the step itself.
 
 ## What this is
 
@@ -38,7 +39,8 @@ because it would be nice.
 - **Auth modal** — a native `<dialog>` over either page, two tabs: sign in (2 fields), sign up
   (4 fields: email, password, first name, last name).
 
-**Favourites is the `movies_to_be_watched` table.** The `watched_movies` table needs a
+**Favourites is the `favorites` table**, renamed from `"movies to be watched"` at step 12 so
+that table, model, schema, route and interface all say one word. The `watched_movies` table needs a
 `personal_rating` on insert, which is exactly the extra input the scope removes. It stays in
 the database, in the API and under test — it is CP5 and CP7 evidence — but the SPA never
 touches it.
@@ -130,17 +132,20 @@ whole flow is usable with the keyboard alone · at 375 px nothing overflows hori
     template keeps the 5432 default on purpose: it documents the shape of the file, not one
     machine's setup. No database runs at this point and none is needed — steps 11 to 14 are read
     from the shape of `/docs`, which touches neither Postgres nor Redis.
-11. [ ] **Fix the merge wreck** — `backend/app/routers/movie_list.py:18-21` carries a duplicated
-    decorator and signature, so `import app.main` raises `IndentationError` and the whole test
-    suite is dead. Keep the `Depends()` form; the bare `params: schemas.MovieSearch` form would
-    demand a request body on a GET.
-12. [ ] **The three schema changes the scope requires** — `MovieSearch` becomes an **optional**
-    `query: str | None` plus `page: int`. An empty query keeps the existing `discover/movie`
-    call, which is what fills the home page with popular films; a query of three characters or
-    more goes to `search/movie` instead;
-    `poster_path` is added to `MovieResponse` and read from the raw result at
-    `movie_list.py:70`; `ToBeWatched.imdb_id` and `imdb_rating` become `Optional` with nullable
-    columns, because a film absent from OMDB currently returns 422 on add.
+11. [x] **Fix the merge wreck** — `movie_list.py` carried a duplicated decorator and signature, so
+    `import app.main` raised `IndentationError` and the whole test suite was dead. The `Depends()`
+    form was kept; the bare `params: schemas.MovieSearch` form would have demanded a request body
+    on a GET.
+12. [x] **The contract the scope requires** — `MovieSearch` is now an optional `query` plus
+    `page`: absent means the home page and keeps `discover/movie`, three characters or more go to
+    `search/movie`, and the title is percent-encoded, or `Fast & Furious` splits into two query
+    parameters and the search silently looks for something else. `MovieResponse` gains
+    `poster_path` and loses `already_seen` and `personal_rating`, so `/movies/` no longer reads
+    the watched table at all. `imdb_id` and `imdb_rating` are `Optional` with nullable columns,
+    because a film absent from OMDB used to return 422 on add.
+    **Beyond the plan:** the whole to-watch vocabulary became **favorites** — table, model,
+    schema, module, route prefix and both handler names. Renaming the GET handler also cleared
+    the OpenAPI collision with the identically named one in `watched_list.py`.
 13. [ ] **Close the cross-user leak** — `get_movies` has no `get_current_user` dependency and
     reads both tables with `.all()` (`movie_list.py:19,55,57`), so every user's rows are
     cross-referenced. This is OWASP A01, found in our own code; write the before and after down
@@ -151,22 +156,23 @@ whole flow is usable with the keyboard alone · at 375 px nothing overflows hori
 14. [ ] **Three small repairs** — wrap the two Redis calls (`movie_list.py:29,43`) in
     `try/except redis.RedisError` so a stopped Redis degrades to a cache miss instead of a 500,
     which is CP6's exception-handling criterion in four lines; add
-    `DELETE /to-watch/{tmdb_id}`, mirroring `watched_list.py:45`; delete `app/routers/smth.py`
+    `DELETE /favorites/{tmdb_id}`, mirroring `watched_list.py:45`; delete `app/routers/smth.py`
     and its mount in `main.py:3,17`.
 15. [ ] **Postgres and Redis, then one migration** — a `compose.yml` at the repository root,
     where `docker compose up -d` finds it with no `-f`, declaring the two services and a named
     volume so the data survives a restart. Postgres publishes host port **5555**. Then delete all
     8 files in `backend/alembic/versions/` (two have broken downgrades) and generate a single
     `initial schema`. The containers arrive here rather than earlier because the migration is the
-    first thing that cannot run without them. The table renames belong here too — `"watched
-    movies"` and `"movies to be watched"` carry spaces — along with the nullable columns from
-    step 12, and a naming convention on `Base.metadata` so constraints stop getting random names.
+    first thing that cannot run without them. One rename is still outstanding — `"watched movies"`
+    carries a space, while `favorites` was renamed at step 12 — along with a naming convention on
+    `Base.metadata` so constraints stop getting random names.
 16. [ ] **Seed script** — two users with populated lists. This is the CP5 *jeu d'essai*, and the
     two accounts are what proves the step 13 isolation fix by demonstration rather than
     assertion.
-17. [ ] **TMDB/OMDB stand-in server** — a small FastAPI app on port 9100 serving `search/movie`,
-    `external_ids` and the OMDB rating, so the SPA runs with no API keys. Skip only if real keys
-    are on hand.
+17. [-] **TMDB/OMDB stand-in server** — dropped. Real TMDB and OMDB keys now sit in `.env`, which
+    is the exact condition this step named for skipping it. Note for the defence: TMDB's v4 header
+    scheme wants the *API Read Access Token*, the long `eyJ…` string, not the 32-character v3 API
+    key — `movie_list.py` sends `Authorization: Bearer`, and the v3 key there returns 401.
 18. [ ] **`src/api/client.js`** — one fetch wrapper: base URL from `VITE_API_URL`, the
     `Authorization: Bearer` header, and the single place that turns a non-2xx into a thrown
     `ApiError` carrying `status` and the FastAPI `detail`. Every error message on screen comes
@@ -189,7 +195,7 @@ user shows none of the first user's rows.
 ## Day 4 (Sat 5 Sep) — the evidence
 
 20. [ ] **Minimal back-end tests** — `backend/tests/test_login.py` is 0 bytes. Add login
-    success, wrong password, unknown email, a `/to-watch` create-read-delete cycle, a 401 on a
+    success, wrong password, unknown email, a `/favorites` create-read-delete cycle, a 401 on a
     missing token, and the isolation test from step 13. Reset `my_app.dependency_overrides` in
     the `client` fixture: `conftest.py:36` leaks it across the whole session.
 21. [ ] **Three Vitest tests, no more** — the password validator rejects a weak input,
@@ -255,9 +261,7 @@ dossier's "what is left to do", which scores better than silence.
   responses, and has no timeout and no `raise_for_status()`.
 - `async def` handlers run blocking psycopg2 queries on the event loop (`movie_list.py:19,55`).
 - `except IntegrityError` reports 409 "already exists" for any integrity failure, including a
-  `NOT NULL` violation (`watched_list.py:32`, `to_be_watched.py:33`).
-- `schemas.ToBeWatched` lacks `from_attributes` while serving as an ORM `response_model`
-  (`to_be_watched.py:40`).
+  `NOT NULL` violation (`watched_list.py:32`, `favorites.py:33`).
 - No OpenAPI metadata: no title, version, tags or `operation_id`; two handlers share the name
   `watched_movies`, which poisons any generated client.
 - `alembic.ini:65` holds a dead literal f-string with a typo — `setting.` for `settings.`.
@@ -273,3 +277,12 @@ dossier's "what is left to do", which scores better than silence.
 - `origin/prep-entretien` is a dead remote branch from the repository's interview past.
 - `backend/postman/README.md` and `backend/tests/test_watched.py` are in French; `CLAUDE.md`
   requires English in files, and touching one means translating it.
+- `favorites.py:19-25` re-queries the user that `get_current_user` already resolved from the
+  token, then raises a 404 that cannot happen. Dead defensive code.
+- `ruff check app` reports 46 findings, 23 auto-fixable. Seventeen are `B008` **false
+  positives** — `Depends()` in a default argument is the FastAPI mechanism itself, so the fix is
+  `extend-immutable-calls` in `pyproject.toml`, never a code change. The rest are real: unsorted
+  imports, unused imports, `List[...]` where `list[...]` now works. This is the back-end half of
+  *la qualité du code est vérifiée*, the criterion `oxlint` already answers on the front.
+- `backend/postman/WatchList.postman_collection.json` still calls `/to-watch/`, and it is French
+  too, so correcting the path means translating the file.
