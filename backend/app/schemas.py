@@ -1,20 +1,34 @@
-from datetime import date, datetime
-from pydantic import BaseModel, EmailStr, Field
-from typing_extensions import Optional
+from datetime import date
 from typing import Annotated
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+
+class Health(BaseModel):
+    """What GET /health answers: the process, and what it can reach."""
+
+    status: str
+    database: str
+    cache: str
 
 
 class TokenResponse(BaseModel):
+    """What POST /login/ hands back: the bearer token and its type."""
+
     access_token: str
     token_type: str
 
 
 class UserCredentials(BaseModel):
+    """The sign-in body."""
+
     email: EmailStr
     password: str
 
 
 class CreateUser(BaseModel):
+    """The sign-up body. The password policy is checked in the router, not here."""
+
     email: EmailStr
     password: str
     first_name: str
@@ -22,6 +36,10 @@ class CreateUser(BaseModel):
 
 
 class UserResponse(BaseModel):
+    """A user as the API shows it — note that `password` is absent by design."""
+
+    model_config = ConfigDict(from_attributes=True)
+
     user_id: int
     email: EmailStr
     first_name: str
@@ -30,41 +48,40 @@ class UserResponse(BaseModel):
 
 
 class MovieSearch(BaseModel):
-    primary_release_year: int
-    original_language: str
-    page: Annotated[int, Field(ge=1, le=500)]
+    """The query string of GET /movies/, validated before TMDB is called."""
+
+    # Absent means "popular" and keeps the discover call. The constraint sits on
+    # str rather than on the union, so None skips it: the client omits it.
+    query: Annotated[str, Field(min_length=3)] | None = None
+    page: Annotated[int, Field(ge=1, le=500)] = 1
 
 
 class MovieResponse(BaseModel):
+    """One film in the public list."""
+
+    # No "saved" flag: the endpoint is public and reads no user data at all, so
+    # the front-end marks its own cards from the two private lists.
     tmdb_id: int
     title: str
-    release_date: date
-    imdb_id: Optional[str]
-    imdb_rating: Optional[float]
-    already_seen: Optional[bool] = False
-    personal_rating: Optional[float] = 0
-    watch_later: Optional[bool] = False
+    # Empty at TMDB for an unreleased film, so the card prints a dash.
+    release_date: date | None = None
+    # TMDB leaves this null for plenty of titles; the card falls back to a placeholder.
+    poster_path: str | None = None
+    imdb_id: str | None = None
+    imdb_rating: float | None = None
 
 
-class WatchedMovie(BaseModel):
+class SavedMovie(BaseModel):
+    """One film in a saved list: the body when adding, the item when reading."""
+
+    # Both lists hold the same shape, so both routers answer with this schema.
+    model_config = ConfigDict(from_attributes=True)
+
     tmdb_id: int
     title: str
-    release_date: date
-    imdb_id: Optional[str]
-    imdb_rating: Optional[float]
-    personal_rating: float
-
-    class Config:
-        from_attributes = True
-
-
-# CORRECTIONS AFTER INTERVIEW
-# IN MODEL FIELDS imdb_id AND imdb_rating ARE NOT NULLUBLE, SO OPTIONAL FIELD CAN'T BE USED
-class ToBeWatched(BaseModel):
-    tmdb_id: int
-    title: str
-    release_date: date
-    # imdb_id: Optional[str]
-    # imdb_rating: Optional[float]
-    imdb_id: str
-    imdb_rating: float
+    release_date: date | None = None
+    poster_path: str | None = None
+    # A film absent from OMDB has neither, and requiring them turned adding it
+    # into a 422. The columns are nullable, so the insert goes through.
+    imdb_id: str | None = None
+    imdb_rating: float | None = None

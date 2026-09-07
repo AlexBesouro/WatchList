@@ -1,84 +1,85 @@
 import asyncio
+import logging
+from urllib.parse import quote_plus
+
 from aiohttp import ClientError
-import json
-from typing import List
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from app import schemas, models
+
+from app import schemas, utils
+from app.cache import cache_get, cache_set
 from app.config import settings
-import redis
-from app import utils
-from app.database import get_db
 
-red = redis.Redis(host="localhost", port=6379, decode_responses=True)
+log = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/movies", tags=["All movies list"])
+# TMDB refreshes its popular list slowly, so ten hours of cache costs nothing and
+# saves forty-one upstream calls per page view.
+CACHE_TTL = 36000
+
+router = APIRouter(prefix="/movies", tags=["Movies"])
 
 
-@router.get("/", response_model= List[schemas.MovieResponse])
-async def get_movies(params: schemas.MovieSearch = Depends(), db: Session = Depends(get_db)):
-@router.get("/", response_model=List[schemas.MovieResponse])
-async def get_movies(params: schemas.MovieSearch, db: Session = Depends(get_db)):
+@router.get("")
+async def get_movies(
+    params: schemas.MovieSearch = Depends(),
+) -> list[schemas.MovieResponse]:
+    """The public film list: popular titles, or the results of a search."""
+    # Public and stateless: no database session is opened, so the list answers
+    # before Postgres exists and has no user rows it could leak.
+
+    # The query belongs in the key: otherwise a search reads back the popular list.
+    # `or ""` and not the raw value: an absent query renders as "None", and a
+    # search for the word None would then build the very same key.
+    cache_key = f"movies:{params.query or ''}:{params.page}"
+
+    # What is cached is the finished list, not the TMDB page it was built from.
+    # Enriching costs two upstream calls per film, so caching the page instead
+    # would save one request out of forty-one.
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return cached
 
     headers = {
         "accept": "application/json",
         "Authorization": f"Bearer {settings.AUTHORIZATION}",
     }
 
-    cache_key = f"TMDB_result:{params.primary_release_year}:{params.original_language}:{params.page}"
-    cached_result = red.get(cache_key)
-    if cached_result:
-        result = json.loads(cached_result)
-        print("Returning cached data")
-    else:
-        try:
-            result = await utils.fetch_data(
-                f"{settings.TMDB_URL}discover/movie?"
-                f"primary_release_year={params.primary_release_year}&"
-                f"with_original_language={params.original_language}&"
-                f"page={params.page}",
-                headers=headers,
-            )
-
-            red.set(cache_key, json.dumps(result), ex=36000)
-            print("Fetching new data from TMDB API")
-        except ClientError as e:
-            print(f"Error fetching TMDB data: {e}")
-            return []  # Return an empty list instead of failing completely
-        except ValueError:
-            print("Invalid JSON response from TMDB API")
-            return []
-
-    res = result["results"]
-    film_list = []
-    tasks = []
-    watched_movies = db.query(models.WatchedMovies).all()
-    watched_movies_dict = {movie.tmdb_id: movie for movie in watched_movies}
-    to_be_watched_movies = db.query(models.ToBeWatched).all()
-    to_be_watched_movies_set = {movie.tmdb_id for movie in to_be_watched_movies}
-
-    for movie in res:
-        tmdb_id = movie["id"]
-        is_watched = watched_movies_dict.get(tmdb_id)
-        watched_status = bool(is_watched)
-        personal_rating = is_watched.personal_rating if is_watched else 0
-        watch_later = tmdb_id in to_be_watched_movies_set
-        task = utils.get_movie_details(tmdb_id, headers)
-        tasks.append(task)
-        film_list.append(
-            {
-                "tmdb_id": tmdb_id,
-                "title": movie["original_title"],
-                "release_date": movie["release_date"],
-                "already_seen": watched_status,
-                "personal_rating": personal_rating,
-                "watch_later": watch_later,
-            }
+    # No query means the home page, and discover answers "what is popular now".
+    if params.query:
+        url = (
+            f"{settings.TMDB_URL}search/movie?"
+            f"query={quote_plus(params.query)}&page={params.page}"
         )
+    else:
+        url = f"{settings.TMDB_URL}discover/movie?page={params.page}"
 
-    movie_details = await asyncio.gather(*tasks)
-    for i, (imdb_id, imdb_rating) in enumerate(movie_details):
-        film_list[i]["imdb_id"] = imdb_id
-        film_list[i]["imdb_rating"] = imdb_rating
+    try:
+        page = await utils.fetch_data(url, headers=headers)
+    except (ClientError, ValueError):
+        # An empty list and not a 500: TMDB being down is not a bug in this
+        # service, and the page renders its "nothing found" state. Nothing is
+        # cached here, or one bad minute would blank the home page for ten hours.
+        log.warning("TMDB did not answer for %r", url)
+        return []
 
-    return film_list
+    films = [
+        {
+            "tmdb_id": movie["id"],
+            "title": movie["original_title"],
+            # TMDB sends "" rather than null for an unannounced date.
+            "release_date": movie.get("release_date") or None,
+            # TMDB sends the key with a null value when a title has no poster.
+            "poster_path": movie.get("poster_path"),
+        }
+        for movie in page["results"]
+    ]
+
+    # One round trip per film would be forty in a row; gather runs them at once.
+    details = await asyncio.gather(
+        *(utils.get_movie_details(film["tmdb_id"], headers) for film in films)
+    )
+    for film, (imdb_id, imdb_rating) in zip(films, details, strict=True):
+        film["imdb_id"] = imdb_id
+        film["imdb_rating"] = imdb_rating
+
+    cache_set(cache_key, films, CACHE_TTL)
+    return films

@@ -1,39 +1,54 @@
+from datetime import UTC, datetime, timedelta
+from typing import Annotated
+
 import jwt
-from datetime import datetime, timedelta, timezone
-from sqlalchemy.orm import Session
-from app import models
-from app.config import settings
-from fastapi import Depends, status, HTTPException, Security
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
-from app.database import get_db
+from app import models
+from app.config import settings
+from app.database import DbSession
 
-SECRET_KEY = settings.SECRET_KEY
-ALGORITHM = settings.ALGORITHM
-EXPIRE_TIME = settings.EXPIRE_TIME
-
+# The dependency that reads "Authorization: Bearer <token>". auto_error=True, so
+# a call with no header is refused before the handler body ever runs.
 oauth2_schema = OAuth2PasswordBearer(tokenUrl="login")
 
-def create_access_token(data:dict):
-    to_encode = data.copy()
-    expire_time = datetime.now(timezone.utc) + timedelta(minutes=EXPIRE_TIME)
-    to_encode.update({"exp": expire_time})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, ALGORITHM)
-    return encoded_jwt
+# One wording for every way a token can fail, so the answer never says which.
+REFUSED = "Could not validate credentials"
 
-def verify_token(token:str):
+
+def create_access_token(data: dict) -> str:
+    """Sign a token carrying `data` plus the moment it stops being valid."""
+    expires_at = datetime.now(UTC) + timedelta(minutes=settings.EXPIRE_TIME)
+    return jwt.encode(data | {"exp": expires_at}, settings.SECRET_KEY, settings.ALGORITHM)
+
+
+def verify_token(token: str) -> dict | None:
+    """The payload, or None when the token is forged, altered or expired."""
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
+        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except jwt.PyJWTError:
         return None
 
 
-def get_current_user(token: str = Security(oauth2_schema), db: Session = Depends(get_db)):
+def get_current_user(
+    token: Annotated[str, Depends(oauth2_schema)], db: DbSession
+) -> models.User:
+    """The user the token names — the single gate in front of the private routes."""
     payload = verify_token(token)
     if not payload:
-        raise HTTPException(status_code=401, detail="Could not validate credentials")
-    user = db.query(models.User).filter(models.User.email == payload["user_email"]).first()
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, REFUSED)
+
+    user = (
+        db.query(models.User).filter(models.User.email == payload["user_email"]).first()
+    )
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        # 401 and not 404: a valid token for a deleted account is a failed
+        # authentication, and 404 would confirm which emails exist.
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, REFUSED)
     return user
+
+
+CurrentUser = Annotated[models.User, Depends(get_current_user)]
+# Every private handler takes `user: CurrentUser`, so the gate is one word long
+# and impossible to half-apply.

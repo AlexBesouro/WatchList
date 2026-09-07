@@ -8,7 +8,15 @@ const POSTER_BASE = 'https://image.tmdb.org/t/p/w200'
 // and carries no "public" segment.
 const POSTER_PLACEHOLDER = '/placeholder.png'
 
-export default function MovieCard({ movie, onToggle }) {
+// Props only, no context: the card is the piece the tests drive directly, and
+// it renders the same whether the data came from the API or from a fixture.
+export default function MovieCard({
+  movie,
+  isFavorite,
+  isWatchLater,
+  onToggleFavorite,
+  onToggleWatchLater,
+}) {
   const [posterFailed, setPosterFailed] = useState(false)
 
   const year = movie.release_date ? movie.release_date.slice(0, 4) : '—'
@@ -34,13 +42,16 @@ export default function MovieCard({ movie, onToggle }) {
         {movie.imdb_rating == null ? 'no IMDb rating' : `IMDb ${movie.imdb_rating}`}
       </p>
 
-      <button
-        type="button"
-        className={movie.is_favorite ? 'is-active' : undefined}
-        onClick={() => onToggle(movie)}
-      >
-        {movie.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
-      </button>
+      {/* aria-pressed and not a class alone: the button is a switch, and its
+          state has to reach a screen reader as well as the stylesheet. */}
+      <div className="card-actions">
+        <button type="button" aria-pressed={isFavorite} onClick={onToggleFavorite}>
+          {isFavorite ? 'In favorites' : 'Add to favorites'}
+        </button>
+        <button type="button" aria-pressed={isWatchLater} onClick={onToggleWatchLater}>
+          {isWatchLater ? 'In watch later' : 'Watch later'}
+        </button>
+      </div>
     </li>
   )
 }

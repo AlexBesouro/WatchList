@@ -1,0 +1,39 @@
+# Local infrastructure only: the API and the front-end run on the host, from
+# Poetry and from Vite. Start it with the back-end's own .env as the source:
+#
+#   docker compose --env-file backend/.env up -d
+#
+# so the password Postgres is created with is the one the application reads.
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: watchlist-db
+    environment:
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+    ports:
+      # 5555 on the host: 5432 is usually taken by a Postgres installed natively,
+      # and two servers on one port fail in a way that reads like a wrong password.
+      - "5555:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Without it "up -d" returns while Postgres is still starting, and the
+      # first `alembic upgrade head` fails on a connection that is not open yet.
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  cache:
+    image: redis:8-alpine
+    container_name: watchlist-cache
+    ports:
+      - "6379:6379"
+    # No volume: everything here is a copy of TMDB that expires in ten hours, so
+    # losing it costs one slower page.
+
+volumes:
+  pgdata:
