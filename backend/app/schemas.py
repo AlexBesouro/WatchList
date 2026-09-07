@@ -49,18 +49,6 @@ class MovieResponse(BaseModel):
     imdb_rating: float | None
 
 
-class WatchedMovie(BaseModel):
-    tmdb_id: int
-    title: str
-    release_date: date
-    imdb_id: str | None
-    imdb_rating: float | None
-    personal_rating: float
-
-    class Config:
-        from_attributes = True
-
-
 class Favorite(BaseModel):
     tmdb_id: int
     title: str

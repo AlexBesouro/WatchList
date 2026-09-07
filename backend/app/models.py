@@ -21,23 +21,6 @@ class User(Base):
     )
 
 
-# CORRECTIONS AFTER INTERVIEW
-# composite unique index (UniqueConstraint).
-class WatchedMovies(Base):
-    __tablename__ = "watched movies"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False
-    )
-    tmdb_id: Mapped[int] = mapped_column(nullable=False)
-    title: Mapped[str] = mapped_column(nullable=False)
-    release_date: Mapped[datetime] = mapped_column(DATE, nullable=False)
-    imdb_id: Mapped[str] = mapped_column(nullable=False)
-    imdb_rating: Mapped[float] = mapped_column(nullable=False)
-    personal_rating: Mapped[float] = mapped_column(nullable=False)
-    __table_args__ = (UniqueConstraint("user_id", "tmdb_id", name="uq_watched_movie"),)
-
-
 class Favorite(Base):
     __tablename__ = "favorites"
     id: Mapped[int] = mapped_column(primary_key=True)
