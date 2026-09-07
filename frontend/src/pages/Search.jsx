@@ -41,7 +41,7 @@ export default function Search() {
     reload(() => fakeSearch(term))
   }
 
-  // Stands in for POST/DELETE on /to-watch/; step 19 replaces it with real calls.
+  // Stands in for POST/DELETE on /favorites/; step 19 replaces it with real calls.
   function toggleFavorite(movie) {
     setMovies((current) =>
       current.map((m) =>

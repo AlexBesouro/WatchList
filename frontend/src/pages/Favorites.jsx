@@ -3,7 +3,7 @@ import { MOVIES } from '../api/fixtures.js'
 import MovieGrid from '../components/MovieGrid.jsx'
 import { useMovieList } from '../hooks/useMovieList.js'
 
-// Stands in for GET /to-watch/ until step 19. Declared outside the component:
+// Stands in for GET /favorites/ until step 19. Declared outside the component:
 // useMovieList takes it as an effect dependency, so the reference must be stable.
 function fakeFavorites() {
   const found = MOVIES.filter((movie) => movie.is_favorite)
@@ -14,7 +14,7 @@ export default function Favorites() {
   // No reload here: this list is fetched once and then only shrinks locally.
   const { status, movies, error, setMovies } = useMovieList(fakeFavorites)
 
-  // Stands in for DELETE /to-watch/{tmdb_id}; step 19 replaces it with a real call.
+  // Stands in for DELETE /favorites/{tmdb_id}; step 19 replaces it with a real call.
   function remove(movie) {
     setMovies((current) => current.filter((m) => m.tmdb_id !== movie.tmdb_id))
   }

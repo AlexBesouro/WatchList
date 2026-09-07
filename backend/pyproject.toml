@@ -1,7 +1,7 @@
 [project]
 name = "watchlist"
 version = "0.1.0"
-description = "REST API tracking watched movies and a to-watch list, enriched with TMDB/OMDB data"
+description = "REST API tracking watched movies and a favorites list, enriched with TMDB/OMDB data"
 authors = [
     {name = "Alex Zhukov", email = "ozhukov@galigeo.com"}
 ]
