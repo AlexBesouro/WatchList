@@ -22,3 +22,7 @@ notes/
 
 # The Claude Code guide is a personal working file, kept out of the repository
 CLAUDE.md
+
+# Coverage output: a binary report every pytest --cov run rewrites
+.coverage
+htmlcov/
