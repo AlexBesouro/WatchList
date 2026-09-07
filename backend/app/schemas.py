@@ -37,6 +37,8 @@ class MovieSearch(BaseModel):
 
 
 class MovieResponse(BaseModel):
+    # No favorite flag: the endpoint is public and reads no user data at all, so the
+    # front-end marks its own cards from GET /favorites/.
     tmdb_id: int
     title: str
     release_date: date
@@ -45,8 +47,6 @@ class MovieResponse(BaseModel):
     # Echoed back on add: it is what links the row to OMDB.
     imdb_id: str | None
     imdb_rating: float | None
-    # Computed here, not sent by TMDB: it answers "is it in this user's list".
-    is_favorite: bool | None = False
 
 
 class WatchedMovie(BaseModel):

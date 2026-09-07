@@ -4,20 +4,20 @@ import json
 from urllib.parse import quote_plus
 from typing import List
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from app import schemas, models
+from app import schemas
 from app.config import settings
 import redis
 from app import utils
-from app.database import get_db
 
 red = redis.Redis(host="localhost", port=6379, decode_responses=True)
 
 router = APIRouter(prefix="/movies", tags=["All movies list"])
 
 
+# Public and stateless: no database session is opened, so the list answers before
+# Postgres exists and has no user rows it could leak.
 @router.get("/", response_model=List[schemas.MovieResponse])
-async def get_movies(params: schemas.MovieSearch = Depends(), db: Session = Depends(get_db)):
+async def get_movies(params: schemas.MovieSearch = Depends()):
     headers = {
         "accept": "application/json",
         "Authorization": f"Bearer {settings.AUTHORIZATION}",
@@ -53,8 +53,6 @@ async def get_movies(params: schemas.MovieSearch = Depends(), db: Session = Depe
     res = result["results"]
     film_list = []
     tasks = []
-    # One column, not whole rows: only the ids are needed to set the flag.
-    favorite_ids = {row.tmdb_id for row in db.query(models.Favorite.tmdb_id).all()}
 
     for movie in res:
         tmdb_id = movie["id"]
@@ -67,7 +65,6 @@ async def get_movies(params: schemas.MovieSearch = Depends(), db: Session = Depe
                 "release_date": movie["release_date"],
                 # TMDB sends the key with a null value when a title has no poster.
                 "poster_path": movie.get("poster_path"),
-                "is_favorite": tmdb_id in favorite_ids,
             }
         )
 
