@@ -1,48 +1,30 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
-from app import schemas, auth, models
-from app.database import get_db
+from fastapi import APIRouter, status
+
+from app import movie_lists, schemas
+from app.auth import CurrentUser
+from app.database import DbSession
+from app.models import Favorite
 
 router = APIRouter(prefix="/favorites", tags=["Favorites"])
 
 
-@router.post("/", status_code=201, response_model=schemas.Favorite)
+@router.get("")
+def list_favorites(db: DbSession, user: CurrentUser) -> list[schemas.SavedMovie]:
+    """The films this user marked as favorites."""
+    return movie_lists.list_movies(db, user, Favorite)
+
+
+@router.post("", status_code=status.HTTP_201_CREATED)
 def add_favorite(
-    movie: schemas.Favorite,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user),
-):
-    user = (
-        db.query(models.User)
-        .filter(models.User.user_id == current_user.user_id)
-        .first()
-    )
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    add_movie_request = models.Favorite(**movie.model_dump())
-    add_movie_request.user_id = current_user.user_id
-    try:
-        db.add(add_movie_request)
-        db.commit()
-        db.refresh(add_movie_request)
-        return add_movie_request
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(
-            status_code=409, detail="Movie already in favorites."
-        )
+    movie: schemas.SavedMovie, db: DbSession, user: CurrentUser
+) -> schemas.SavedMovie:
+    """Add a film to this user's favorites."""
+    return movie_lists.add_movie(db, user, Favorite, movie)
 
 
-@router.get("/", status_code=200, response_model=List[schemas.Favorite])
-def list_favorites(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user),
-):
-    movies = (
-        db.query(models.Favorite)
-        .filter(models.Favorite.user_id == current_user.user_id)
-        .all()
-    )
-    return movies
+@router.delete("/{tmdb_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_favorite(tmdb_id: int, db: DbSession, user: CurrentUser) -> None:
+    """Remove a film from this user's favorites."""
+    # tmdb_id and not id: the path carries the film's TMDB identifier, which is
+    # what the front-end knows, never the primary key of our own row.
+    movie_lists.remove_movie(db, user, Favorite, tmdb_id)

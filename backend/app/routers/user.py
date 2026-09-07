@@ -1,74 +1,39 @@
-import logging
+from fastapi import APIRouter, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import exists
-from sqlalchemy.orm import Session
-from app import schemas, auth, utils
-from app import models
-from app.database import get_db
+from app import models, schemas, utils
+from app.auth import CurrentUser
+from app.database import DbSession
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.post("/", status_code=201, response_model=schemas.UserResponse)
-def create_user(user: schemas.CreateUser, db: Session = Depends(get_db)):
-    """
-    Function with post request to create a new user and add it to Watchlist app database
-    """
-    if db.query(exists().where(models.User.email == user.email)).scalar():
-        raise HTTPException(
-            status_code=409, detail="User with this email already exists"
-        )
+@router.post("", status_code=status.HTTP_201_CREATED)
+def create_user(user: schemas.CreateUser, db: DbSession) -> schemas.UserResponse:
+    """Register an account, once the password clears the policy."""
     valid, message = utils.is_strong_password(user.password)
     if not valid:
-        raise HTTPException(status_code=400, detail=message)
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, message)
+
     new_user = models.User(**user.model_dump())
     new_user.password = utils.hash_password(new_user.password)
+    db.add(new_user)
     try:
-        db.add(new_user)
         db.commit()
-        db.refresh(new_user)
-        return new_user
-    except Exception:
+    except IntegrityError:
+        # The unique index on email is the check. A SELECT first would still let
+        # two simultaneous sign-ups through, and this cannot.
         db.rollback()
-        logging.error("Error saving data to DB", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "User with this email already exists"
+        ) from None
+    db.refresh(new_user)
+    return new_user
 
 
-@router.patch("/", status_code=200, response_model=schemas.UserResponse)
-def update_user(
-    user: schemas.CreateUser,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user),
-):
-    """
-    Function with patch request to update a user in Watchlist app database
-    """
-    user_to_update = (
-        db.query(models.User)
-        .filter(models.User.user_id == current_user.user_id)
-        .first()
-    )
-    data = user.model_dump(exclude_unset=True)
-    if "email" in data and data["email"] != current_user.email:
-        existing_user = (
-            db.query(models.User).filter(models.User.email == data["email"]).first()
-        )
-        if existing_user:
-            raise HTTPException(
-                status_code=409, detail="User with this email already exists"
-            )
-
-    if "password" in data:
-        valid, message = utils.is_strong_password(user.password)
-        if not valid:
-            raise HTTPException(status_code=400, detail=message)
-
-    for key, value in data.items():
-        if key == "password":
-            value = utils.hash_password(value)
-        setattr(user_to_update, key, value)
-
-    db.commit()
-    db.refresh(user_to_update)
-    return user_to_update
+@router.get("/me")
+def read_me(user: CurrentUser) -> schemas.UserResponse:
+    """Who the token belongs to. The front-end calls it to restore a session."""
+    return user
+    # No database session: get_current_user already loaded the row to prove the
+    # token, so asking Postgres a second time would confirm what it just said.
