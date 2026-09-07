@@ -1,7 +1,7 @@
-from datetime import date, datetime
-from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from datetime import date
 from typing import Annotated
+
+from pydantic import BaseModel, EmailStr, Field
 
 
 class TokenResponse(BaseModel):
@@ -32,7 +32,7 @@ class UserResponse(BaseModel):
 class MovieSearch(BaseModel):
     # Absent means "popular" and keeps the discover call. The constraint sits on str
     # rather than on the Optional, so None skips it: the client omits the parameter.
-    query: Optional[Annotated[str, Field(min_length=3)]] = None
+    query: Annotated[str, Field(min_length=3)] | None = None
     page: Annotated[int, Field(ge=1, le=500)] = 1
 
 
@@ -41,20 +41,20 @@ class MovieResponse(BaseModel):
     title: str
     release_date: date
     # TMDB leaves this null for plenty of titles; the card falls back to a placeholder.
-    poster_path: Optional[str] = None
+    poster_path: str | None = None
     # Echoed back on add: it is what links the row to OMDB.
-    imdb_id: Optional[str]
-    imdb_rating: Optional[float]
+    imdb_id: str | None
+    imdb_rating: float | None
     # Computed here, not sent by TMDB: it answers "is it in this user's list".
-    is_favorite: Optional[bool] = False
+    is_favorite: bool | None = False
 
 
 class WatchedMovie(BaseModel):
     tmdb_id: int
     title: str
     release_date: date
-    imdb_id: Optional[str]
-    imdb_rating: Optional[float]
+    imdb_id: str | None
+    imdb_rating: float | None
     personal_rating: float
 
     class Config:
@@ -67,8 +67,8 @@ class Favorite(BaseModel):
     release_date: date
     # A film absent from OMDB has neither, and requiring them turned adding it into
     # a 422. The columns are nullable now, so the insert goes through.
-    imdb_id: Optional[str] = None
-    imdb_rating: Optional[float] = None
+    imdb_id: str | None = None
+    imdb_rating: float | None = None
 
     class Config:
         from_attributes = True
