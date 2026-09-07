@@ -1,60 +1,62 @@
-import { useState } from 'react'
-import { MOVIES } from '../api/fixtures.js'
+import { useEffect, useState } from 'react'
+import { fetchMovies } from '../api/client.js'
 import MovieGrid from '../components/MovieGrid.jsx'
-import { useMovieList } from '../hooks/useMovieList.js'
+import { useSaved } from '../context/SavedContext.jsx'
 
-// Eight fills a phone screen at two columns and splits the 20 fixture films into
-// three pages, so the pagination stays reachable by hand. Step 19 drops this: the
-// API paginates server-side and a page arrives already sliced.
-const PAGE_SIZE = 8
+// TMDB answers with twenty films per page and never says how many pages exist,
+// so a full page is the signal that another one probably follows.
+const PAGE_SIZE = 20
 
-// Stands in for GET /movies/ until step 19. An empty term means "popular", which
-// every title matches. "boom" is the only way to reach the error state by hand.
-function fakeSearch(term) {
-  if (term === 'boom') {
-    return Promise.reject(new Error('The server did not answer. Try again.'))
-  }
-  const found = MOVIES.filter((movie) =>
-    movie.title.toLowerCase().includes(term.toLowerCase()),
-  )
-  return new Promise((resolve) => setTimeout(() => resolve(found), 400))
-}
-
-// Declared here, not inline in the call: useMovieList takes it as an effect
-// dependency, and an arrow written inside the component would be a new value
-// on every render.
-const loadPopular = () => fakeSearch('')
+// TMDB refuses anything past 500, and the API validates the same bound.
+const LAST_PAGE = 500
 
 export default function Search() {
-  const { status, movies, error, setMovies, reload } = useMovieList(loadPopular)
-
   const [query, setQuery] = useState('')
   // The term whose results are on screen; "" means the popular list.
   const [submitted, setSubmitted] = useState('')
   const [page, setPage] = useState(1)
 
+  const [status, setStatus] = useState('loading')
+  const [movies, setMovies] = useState([])
+  const [error, setError] = useState('')
+
+  // The saved lists have their own failures — a duplicate, an expired token —
+  // and they belong in the same live region as this page's own.
+  const { error: savedError } = useSaved()
+
+  // Runs on mount and again whenever the term or the page changes, so paging
+  // and searching are the same code path rather than two.
+  useEffect(() => {
+    let ignore = false
+    setStatus('loading')
+
+    fetchMovies({ query: submitted, page })
+      .then((found) => {
+        if (ignore) return
+        setMovies(found)
+        setStatus('ready')
+      })
+      .catch((failure) => {
+        if (ignore) return
+        setError(failure.message)
+        setStatus('error')
+      })
+
+    // Drops the answer to a request the user has already moved past: two quick
+    // searches can come back out of order, and the last one must win.
+    return () => {
+      ignore = true
+    }
+  }, [submitted, page])
+
   function handleSubmit(event) {
     event.preventDefault()
-    const term = query.trim()
-    setSubmitted(term)
+    setSubmitted(query.trim())
     setPage(1)
-    reload(() => fakeSearch(term))
   }
 
-  // Stands in for POST/DELETE on /favorites/; step 19 replaces it with real calls.
-  function toggleFavorite(movie) {
-    setMovies((current) =>
-      current.map((m) =>
-        m.tmdb_id === movie.tmdb_id ? { ...m, is_favorite: !m.is_favorite } : m,
-      ),
-    )
-  }
-
-  // All derived from movies and page, so they are computed rather than stored.
   const found = status === 'ready' && movies.length > 0
   const isEmpty = status === 'ready' && movies.length === 0
-  const pageCount = Math.max(1, Math.ceil(movies.length / PAGE_SIZE))
-  const shown = movies.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <>
@@ -80,34 +82,28 @@ export default function Search() {
       <div aria-live="polite">
         {status === 'loading' && <p>Loading…</p>}
         {status === 'error' && <p className="error">{error}</p>}
+        {savedError && <p className="error">{savedError}</p>}
         {isEmpty && <p>Nothing found for “{submitted}”.</p>}
         {found && submitted === '' && <p>Popular films.</p>}
         {found && submitted !== '' && (
           <p>
-            {movies.length} film{movies.length > 1 ? 's' : ''} found for “
-            {submitted}”.
+            Results for “{submitted}”, page {page}.
           </p>
         )}
       </div>
 
       {found && (
         <>
-          <MovieGrid movies={shown} onToggle={toggleFavorite} />
+          <MovieGrid movies={movies} />
 
           <nav className="pagination" aria-label="Result pages">
-            <button
-              type="button"
-              disabled={page === 1}
-              onClick={() => setPage(page - 1)}
-            >
+            <button type="button" disabled={page === 1} onClick={() => setPage(page - 1)}>
               Previous
             </button>
-            <span>
-              Page {page} of {pageCount}
-            </span>
+            <span>Page {page}</span>
             <button
               type="button"
-              disabled={page === pageCount}
+              disabled={movies.length < PAGE_SIZE || page >= LAST_PAGE}
               onClick={() => setPage(page + 1)}
             >
               Next

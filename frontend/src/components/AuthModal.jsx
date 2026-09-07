@@ -1,22 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
+import { useAuth } from '../context/AuthContext.jsx'
 import { checkPassword, isStrongPassword } from '../lib/password.js'
 
 const EMPTY = { email: '', password: '', first_name: '', last_name: '' }
 
-export default function AuthModal({ open, onClose }) {
+export default function AuthModal() {
+  const { authOpen, closeAuth, signIn, signUp } = useAuth()
+
   const dialogRef = useRef(null)
   const [mode, setMode] = useState('signin')
   const [form, setForm] = useState(EMPTY)
   const [notice, setNotice] = useState('')
+  const [pending, setPending] = useState(false)
+
+  const signup = mode === 'signup'
 
   // Bridges the declarative prop to the imperative DOM API. showModal() throws
   // if the dialog is already open, hence the guards.
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
-    if (open && !dialog.open) dialog.showModal()
-    if (!open && dialog.open) dialog.close()
-  }, [open])
+    if (authOpen && !dialog.open) dialog.showModal()
+    if (!authOpen && dialog.open) dialog.close()
+  }, [authOpen])
 
   // One handler for every field: the property name comes from the input's name.
   function update(event) {
@@ -29,30 +35,44 @@ export default function AuthModal({ open, onClose }) {
     setNotice('')
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
     // Native validation covers required and length; the rest of the policy is here.
     if (signup && !isStrongPassword(form.password)) {
       setNotice('The password does not meet every rule yet.')
       return
     }
-    setNotice('Not connected to the API yet — that is step 19.')
+
+    setPending(true)
+    setNotice('')
+    try {
+      // The two calls differ, what happens after them does not: a token is
+      // stored, the dialog closes and the saved lists load themselves.
+      if (signup) await signUp(form)
+      else await signIn({ email: form.email, password: form.password })
+
+      setForm(EMPTY)
+      closeAuth()
+    } catch (failure) {
+      // The message is the API's own `detail`, so "User with this email already
+      // exists" reaches the user instead of a generic failure.
+      setNotice(failure.message)
+    } finally {
+      setPending(false)
+    }
   }
 
   // ::backdrop has no node of its own, so a click on it is reported with the
-  // <dialog> as target, while a click inside always names a child. The dialog
-  // carries no padding, so "target is the dialog" can only mean the backdrop.
+  // <dialog> as target, while a click inside always names a child.
   function handleBackdropClick(event) {
     if (event.target === dialogRef.current) dialogRef.current.close()
   }
-
-  const signup = mode === 'signup'
 
   return (
     // onClose also fires for Escape, which closes the dialog without telling React.
     <dialog
       ref={dialogRef}
-      onClose={onClose}
+      onClose={closeAuth}
       onClick={handleBackdropClick}
       aria-labelledby="auth-title"
     >
@@ -60,18 +80,10 @@ export default function AuthModal({ open, onClose }) {
         <h2 id="auth-title">{signup ? 'Create an account' : 'Sign in'}</h2>
 
         <div className="auth-tabs">
-          <button
-            type="button"
-            aria-pressed={!signup}
-            onClick={() => switchMode('signin')}
-          >
+          <button type="button" aria-pressed={!signup} onClick={() => switchMode('signin')}>
             Sign in
           </button>
-          <button
-            type="button"
-            aria-pressed={signup}
-            onClick={() => switchMode('signup')}
-          >
+          <button type="button" aria-pressed={signup} onClick={() => switchMode('signup')}>
             Create account
           </button>
         </div>
@@ -152,10 +164,14 @@ export default function AuthModal({ open, onClose }) {
           </p>
 
           <div className="auth-actions">
-            <button type="button" onClick={onClose}>
+            <button type="button" onClick={closeAuth}>
               Cancel
             </button>
-            <button type="submit">{signup ? 'Create account' : 'Sign in'}</button>
+            {/* Disabled while the request is out: a second submit would create
+                the account twice, and the second one answers 409. */}
+            <button type="submit" disabled={pending}>
+              {pending ? 'Working…' : signup ? 'Create account' : 'Sign in'}
+            </button>
           </div>
         </form>
       </div>

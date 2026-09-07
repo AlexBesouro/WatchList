@@ -157,6 +157,13 @@ header nav a[aria-current='page'] {
   margin-left: auto;
 }
 
+/* The signed-in address, sitting between the theme toggle and Sign out. */
+.signed-in {
+  align-self: center;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
 main {
   max-width: var(--container);
   margin: 0 auto;
@@ -272,18 +279,23 @@ button:disabled:hover {
   font-size: 0.875rem;
 }
 
-/* Pushes the button down so buttons line up across cards of different heights. */
-.card button {
+/* Pushes the pair down so buttons line up across cards of different heights. */
+.card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
   margin-top: auto;
 }
 
-.card button.is-active {
+/* The saved state is drawn from aria-pressed, so the attribute a screen reader
+   reads and the one the stylesheet reads can never fall out of step. */
+.card-actions button[aria-pressed='true'] {
   border-color: var(--border);
   background: transparent;
   color: var(--text);
 }
 
-.card button.is-active:hover {
+.card-actions button[aria-pressed='true']:hover {
   border-color: var(--accent);
   background: transparent;
 }
