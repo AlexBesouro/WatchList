@@ -14,6 +14,19 @@ dependencies = ["fastapi (>=0.141.1,<0.142.0)", "uvicorn[standard] (>=0.52.4,<0.
 # Poetry only manages the virtualenv and the dependencies.
 package-mode = false
 
+[tool.ruff]
+line-length = 90
+
+[tool.ruff.lint]
+# E and F are the default; I sorts the imports, B catches the classic bugs, UP
+# keeps the syntax at the Python version the project actually targets.
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.flake8-bugbear]
+# B008 forbids a function call in a default argument. In FastAPI that call *is*
+# the mechanism, so Depends is exempted rather than silenced line by line.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path"]
+
 [tool.pytest.ini_options]
 # package-mode = false means `app` is never installed into the venv, so pytest
 # needs the repo root on sys.path for `from app.main import my_app` to resolve.
@@ -23,7 +36,7 @@ pythonpath = ["."]
 [dependency-groups]
 dev = [
     "pytest (>=9.1.1,<10.0.0)",
-    "httpx (>=0.28.1,<0.29.0)",
     "pytest-cov (>=7.1.0,<8.0.0)",
-    "ruff (>=0.16.5,<0.17.0)"
+    "ruff (>=0.16.5,<0.17.0)",
+    "httpx2 (>=2.12.0,<3.0.0)"
 ]
