@@ -41,13 +41,16 @@ export function AuthProvider({ children }) {
     }
     let ignore = false
 
-    fetchMe(token)
-      .then((me) => {
+    async function load() {
+      try {
+        const me = await fetchMe(token)
         if (!ignore) setUser(me)
-      })
-      .catch(() => {
+      } catch {
         if (!ignore) signOut()
-      })
+      }
+    }
+
+    load()
 
     return () => {
       ignore = true
