@@ -46,10 +46,10 @@ export default function MovieCard({
           state has to reach a screen reader as well as the stylesheet. */}
       <div className="card-actions">
         <button type="button" aria-pressed={isFavorite} onClick={onToggleFavorite}>
-          {isFavorite ? 'In favorites' : 'Add to favorites'}
+          {isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         </button>
         <button type="button" aria-pressed={isWatchLater} onClick={onToggleWatchLater}>
-          {isWatchLater ? 'In watch later' : 'Watch later'}
+          {isWatchLater ? 'Remove from watch later' : 'Watch later'}
         </button>
       </div>
     </li>
