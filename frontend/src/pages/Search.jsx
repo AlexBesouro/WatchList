@@ -30,17 +30,22 @@ export default function Search() {
     let ignore = false
     setStatus('loading')
 
-    fetchMovies({ query: submitted, page })
-      .then((found) => {
+    // The effect itself cannot be async: React reads what it returns as the
+    // cleanup function, and an async function always returns a promise.
+    async function load() {
+      try {
+        const found = await fetchMovies({ query: submitted, page })
         if (ignore) return
         setMovies(found)
         setStatus('ready')
-      })
-      .catch((failure) => {
+      } catch (failure) {
         if (ignore) return
         setError(failure.message)
         setStatus('error')
-      })
+      }
+    }
+
+    load()
 
     // Drops the answer to a request the user has already moved past: two quick
     // searches can come back out of order, and the last one must win.

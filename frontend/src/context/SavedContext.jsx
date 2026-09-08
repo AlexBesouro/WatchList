@@ -31,17 +31,23 @@ export function SavedProvider({ children }) {
 
     // Both lists at once: they are independent, so waiting for one before
     // asking for the other would double the time the page takes to settle.
-    Promise.all([fetchSaved(token, FAVORITES), fetchSaved(token, WATCH_LATER)])
-      .then(([favorites, watchLater]) => {
+    async function load() {
+      try {
+        const [favorites, watchLater] = await Promise.all([
+          fetchSaved(token, FAVORITES),
+          fetchSaved(token, WATCH_LATER),
+        ])
         if (ignore) return
         setLists({ [FAVORITES]: favorites, [WATCH_LATER]: watchLater })
         setStatus('ready')
-      })
-      .catch((failure) => {
+      } catch (failure) {
         if (ignore) return
         setError(failure.message)
         setStatus('error')
-      })
+      }
+    }
+
+    load()
 
     // Drops the answer to a session that no longer exists: signing out while a
     // request is in flight would otherwise repopulate the lists after it.

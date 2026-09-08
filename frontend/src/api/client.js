@@ -44,7 +44,14 @@ async function request(path, { method = 'GET', body, token } = {}) {
   // 204 has no body at all, and response.json() on an empty body throws.
   if (response.status === 204) return null
 
-  const payload = await response.json().catch(() => null)
+  // let and not const: the value is assigned inside the try and read after it.
+  let payload = null
+  try {
+    payload = await response.json()
+  } catch {
+    // A body that is empty or not JSON at all; the status still says enough.
+  }
+
   if (!response.ok) throw new ApiError(response.status, readDetail(payload, response.status))
   return payload
 }
