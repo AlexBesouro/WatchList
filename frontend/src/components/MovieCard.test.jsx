@@ -54,7 +54,7 @@ describe('the two save buttons', () => {
   it('says what clicking will do, and reports the saved state', () => {
     show(ARRIVAL, { isFavorite: true })
 
-    const favorite = screen.getByRole('button', { name: 'In favorites' })
+    const favorite = screen.getByRole('button', { name: 'Remove from favorites' })
     // aria-pressed is what a screen reader announces and what the stylesheet
     // reads, so asserting it covers both at once.
     expect(favorite.getAttribute('aria-pressed')).toBe('true')
@@ -70,5 +70,14 @@ describe('the two save buttons', () => {
 
     expect(onToggleFavorite).toHaveBeenCalledTimes(1)
     expect(onToggleWatchLater).not.toHaveBeenCalled()
+  })
+
+  // The saved label names the action, not the state: on the Watch later page
+  // every card is saved, and "In watch later" told nobody how to take it back.
+  it('offers to remove a film already in watch later', () => {
+    show(ARRIVAL, { isWatchLater: true })
+
+    const watchLater = screen.getByRole('button', { name: 'Remove from watch later' })
+    expect(watchLater.getAttribute('aria-pressed')).toBe('true')
   })
 })
